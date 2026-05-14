@@ -20,6 +20,10 @@ import {
   Dot,
   Identifier,
   PathLiteral,
+  StringTok,
+  NumberTok,
+  BoolTok,
+  UnitTok,
 } from './lexer.js'
 
 export class SpexParser extends CstParser {
@@ -91,7 +95,13 @@ export class SpexParser extends CstParser {
   })
 
   private namedObject = this.RULE('namedObject', () => {
-    this.CONSUME(Identifier)
+    this.OR([
+      { ALT: () => this.CONSUME(Identifier) },
+      { ALT: () => this.CONSUME(StringTok) },
+      { ALT: () => this.CONSUME(NumberTok) },
+      { ALT: () => this.CONSUME(BoolTok) },
+      { ALT: () => this.CONSUME(UnitTok) },
+    ])
     this.MANY(() => {
       this.CONSUME(Dot)
       this.CONSUME2(Identifier)

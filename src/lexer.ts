@@ -61,6 +61,24 @@ export const PathLiteral = createToken({
   pattern: /"([^"\\]|\\.)*"/,
 })
 
+// Basic objects (native types)
+export const StringTok = createToken({
+  name: 'StringTok',
+  pattern: /string\b/i,
+})
+export const NumberTok = createToken({
+  name: 'NumberTok',
+  pattern: /number\b/i,
+})
+export const BoolTok = createToken({
+  name: 'BoolTok',
+  pattern: /bool\b/i,
+})
+export const UnitTok = createToken({
+  name: 'UnitTok',
+  pattern: /unit\b/i,
+})
+
 // Identifiers
 export const Identifier = createToken({
   name: 'Identifier',
@@ -91,6 +109,11 @@ export const allTokens = [
   Semicolon,
   Dot,
   PathLiteral,
+
+  StringTok,
+  NumberTok,
+  BoolTok,
+  UnitTok,
 
   Identifier,
 ]

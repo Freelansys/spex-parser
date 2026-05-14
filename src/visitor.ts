@@ -83,7 +83,18 @@ export class SpexParserVisitor extends BaseSpexVisitor implements ICstVisitor<an
   }
 
   namedObject(ctx: any): NamedObject {
-    const parts = ctx.Identifier.map((id: any) => id.image)
+    let parts: string[]
+    if (ctx.StringTok) {
+      parts = [ctx.StringTok[0].image, ...(ctx.Identifier ?? []).map((id: any) => id.image)]
+    } else if (ctx.NumberTok) {
+      parts = [ctx.NumberTok[0].image, ...(ctx.Identifier ?? []).map((id: any) => id.image)]
+    } else if (ctx.BoolTok) {
+      parts = [ctx.BoolTok[0].image, ...(ctx.Identifier ?? []).map((id: any) => id.image)]
+    } else if (ctx.UnitTok) {
+      parts = [ctx.UnitTok[0].image, ...(ctx.Identifier ?? []).map((id: any) => id.image)]
+    } else {
+      parts = ctx.Identifier.map((id: any) => id.image)
+    }
     return {
       kind: 'NamedObject',
       name: parts.join('.'),

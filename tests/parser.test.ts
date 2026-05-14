@@ -120,6 +120,60 @@ describe('SpexParser', () => {
       const { parser } = parseInput(testCase)
       expect(parser.errors).toHaveLength(0)
     })
+
+    it('should parse basic object string', () => {
+      const testCase = 'create MyObject as string;'
+      const { parser } = parseInput(testCase)
+      expect(parser.errors).toHaveLength(0)
+    })
+
+    it('should parse basic object number', () => {
+      const testCase = 'create MyObject as number;'
+      const { parser } = parseInput(testCase)
+      expect(parser.errors).toHaveLength(0)
+    })
+
+    it('should parse basic object bool', () => {
+      const testCase = 'create MyObject as bool;'
+      const { parser } = parseInput(testCase)
+      expect(parser.errors).toHaveLength(0)
+    })
+
+    it('should parse basic object unit', () => {
+      const testCase = 'create MyObject as unit;'
+      const { parser } = parseInput(testCase)
+      expect(parser.errors).toHaveLength(0)
+    })
+
+    it('should parse basic objects in product fields', () => {
+      const testCase = 'create Config as (name: string, count: number, active: bool);'
+      const { parser } = parseInput(testCase)
+      expect(parser.errors).toHaveLength(0)
+    })
+
+    it('should not allow overriding basic object string', () => {
+      const testCase = 'create string as Number;'
+      const { parser } = parseInput(testCase)
+      expect(parser.errors).not.toHaveLength(0)
+    })
+
+    it('should not allow overriding basic object number', () => {
+      const testCase = 'create number as Number;'
+      const { parser } = parseInput(testCase)
+      expect(parser.errors).not.toHaveLength(0)
+    })
+
+    it('should not allow overriding basic object bool', () => {
+      const testCase = 'create bool as Number;'
+      const { parser } = parseInput(testCase)
+      expect(parser.errors).not.toHaveLength(0)
+    })
+
+    it('should not allow overriding basic object unit', () => {
+      const testCase = 'create unit as Number;'
+      const { parser } = parseInput(testCase)
+      expect(parser.errors).not.toHaveLength(0)
+    })
   })
 
   describe('import declaration', () => {

@@ -287,6 +287,62 @@ describe('SpexParserVisitor', () => {
       })
     })
 
+    it('should convert basic object string to AST', () => {
+      const testCase = 'create MyObject as string;'
+      const ast = parseToAst(testCase)
+      const decl = ast.declarations[0] as ObjectDeclaration
+      expect(decl).toEqual({
+        kind: 'ObjectDeclaration',
+        name: 'MyObject',
+        object: {
+          kind: 'NamedObject',
+          name: 'string',
+        },
+      })
+    })
+
+    it('should convert basic object number to AST', () => {
+      const testCase = 'create MyObject as number;'
+      const ast = parseToAst(testCase)
+      const decl = ast.declarations[0] as ObjectDeclaration
+      expect(decl).toEqual({
+        kind: 'ObjectDeclaration',
+        name: 'MyObject',
+        object: {
+          kind: 'NamedObject',
+          name: 'number',
+        },
+      })
+    })
+
+    it('should convert basic object bool to AST', () => {
+      const testCase = 'create MyObject as bool;'
+      const ast = parseToAst(testCase)
+      const decl = ast.declarations[0] as ObjectDeclaration
+      expect(decl).toEqual({
+        kind: 'ObjectDeclaration',
+        name: 'MyObject',
+        object: {
+          kind: 'NamedObject',
+          name: 'bool',
+        },
+      })
+    })
+
+    it('should convert basic object unit to AST', () => {
+      const testCase = 'create MyObject as unit;'
+      const ast = parseToAst(testCase)
+      const decl = ast.declarations[0] as ObjectDeclaration
+      expect(decl).toEqual({
+        kind: 'ObjectDeclaration',
+        name: 'MyObject',
+        object: {
+          kind: 'NamedObject',
+          name: 'unit',
+        },
+      })
+    })
+
     it('should convert array type declaration to AST', () => {
       const testCase = 'create MyArray as string[];'
       const ast = parseToAst(testCase)

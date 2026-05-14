@@ -72,7 +72,7 @@ describe('SpexLexer', () => {
         'LParen',
         'Identifier',
         'Colon',
-        'Identifier',
+        'StringTok',
         'RParen',
       ])
     })
@@ -105,7 +105,7 @@ describe('SpexLexer', () => {
       const result = SpexLexer.tokenize('string[]')
       expect(result.errors).toHaveLength(0)
       expect(result.tokens.map((t) => t.tokenType.name)).toEqual([
-        'Identifier',
+        'StringTok',
         'LBracket',
         'RBracket',
       ])
