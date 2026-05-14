@@ -142,7 +142,9 @@ SELECT {
 }
 ```
 
-Subobjects are themselves objects so they could be subobjected as well. A good heuristic for writing constraints is to make the expression read as: "from `object` select those that `{constraint}`".
+Subobjects are themselves objects so they could be subobjected as well. A good heuristic for writing constraints is to make the expression read as: 
+
+> "from `object` select those that `{constraint}`".
 
 # Named Objects
 
