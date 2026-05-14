@@ -5,20 +5,9 @@ describe("SpecLexer", () => {
   describe("tokenization", () => {
     it("should tokenize keywords", () => {
       const result = SpexLexer.tokenize(
-        "object let select where if then else eval given",
+        "create as from select generate import export",
       );
-      expect(result.errors).toHaveLength(0);
-      expect(result.tokens.map((t) => t.tokenType.name)).toEqual([
-        "ObjectTok",
-        "LetTok",
-        "SelectTok",
-        "WhereTok",
-        "IfTok",
-        "ThenTok",
-        "ElseTok",
-        "EvalTok",
-        "GivenTok",
-      ]);
+      throw Error("Not Implemented");
     });
 
     it("should tokenize symbols", () => {
@@ -61,77 +50,23 @@ describe("SpecLexer", () => {
     });
 
     it("should handle mixed input", () => {
-      const result = SpexLexer.tokenize("object Foo ( name: string )");
-      expect(result.errors).toHaveLength(0);
-      expect(result.tokens.map((t) => t.tokenType.name)).toEqual([
-        "ObjectTok",
-        "Identifier",
-        "LParen",
-        "Identifier",
-        "Colon",
-        "Identifier",
-        "RParen",
-      ]);
+      const result = SpexLexer.tokenize("CREATE Foo as ( name: string )");
+      throw Error("Not Implemented");
     });
 
     it("should handle keywords with word boundary", () => {
       const result = SpexLexer.tokenize(
-        "objectfoo fooobject letfoo foolet fooselect selectfoo fooif iffoo thenfoo foothen elsefoo fooelse",
+        "createfoo foocreate asfoo fooas fooselect selectfoo foofrom fromfoo generatefoo foogenerate importfoo fooimport exportfoo fooexport",
       );
       expect(result.errors).toHaveLength(0);
       expect(result.tokens.map((t) => t.tokenType.name)).toEqual(
-        Array(12).fill("Identifier"),
+        Array(14).fill("Identifier"),
       );
     });
 
-    it("should tokenize single-quoted strings", () => {
-      const result = SpexLexer.tokenize("'hello world'");
-      expect(result.errors).toHaveLength(0);
-      expect(result.tokens).toHaveLength(1);
-      expect(result.tokens[0]?.tokenType.name).toBe("StringLiteral");
-      expect(result.tokens[0]?.image).toBe("'hello world'");
-    });
-
-    it("should tokenize double-quoted instructions", () => {
-      const result = SpexLexer.tokenize('"go"');
-      expect(result.errors).toHaveLength(0);
-      expect(result.tokens).toHaveLength(1);
-      expect(result.tokens[0]?.tokenType.name).toBe("Instruction");
-      expect(result.tokens[0]?.image).toBe('"go"');
-    });
-
-    it("should tokenize numbers", () => {
-      const result = SpexLexer.tokenize("-1 1 0.2 1e-2");
-      expect(result.errors).toHaveLength(0);
-      expect(result.tokens).toHaveLength(4);
-      expect(result.tokens.map((t) => t.tokenType.name)).toEqual(
-        Array(4).fill("NumberLiteral"),
-      );
-      expect(result.tokens.map((t) => t.image)).toEqual([
-        "-1",
-        "1",
-        "0.2",
-        "1e-2",
-      ]);
-    });
-
-    it("should tokenize booleans", () => {
-      const result = SpexLexer.tokenize("true false");
-      expect(result.errors).toHaveLength(0);
-      expect(result.tokens).toHaveLength(2);
-      expect(result.tokens.map((t) => t.tokenType.name)).toEqual([
-        "BoolLiteral",
-        "BoolLiteral",
-      ]);
-      expect(result.tokens.map((t) => t.image)).toEqual(["true", "false"]);
-    });
-  });
-
-  describe("error handling", () => {
-    it("should return empty tokens for empty input", () => {
-      const result = SpexLexer.tokenize("");
-      expect(result.errors).toHaveLength(0);
-      expect(result.tokens).toHaveLength(0);
+    it("should tokenize the text between braces", () => {
+      const result = SpexLexer.tokenize("{hello\nworld}");
+      throw Error("Not Implemented");
     });
   });
 });
