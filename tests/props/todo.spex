@@ -1,77 +1,83 @@
-object Todo = (
-  id: Number,
-  title: String,
-  description: String,
-  completed: Bool,
-  createdAt: String,
-)
-object Database = (
-  path: String
-)
-object CliInput = (
-  command: String,
-  arg1: String,
-  arg2: String
-)
+create Todo as (
+  id: string,
+  title: string,
+  description: string,
+  completed: bool,
+  createdAt: string
+);
 
-object ActiveTodo = select Todo where "${completed} is false"
+create TodoTitle as from string select {
+  are not empty and are shorter than 120 characters
+};
 
-object InitDb = Database -> Unit
-object AddTodo = (db: Database, title: String, description: String) -> Todo
-object ListTodos = Database -> Unit
-object GetTodo = (db: Database, id: Number) -> Todo
-object RemoveTodo = (db: Database, id: Number) -> Bool
-object CompleteTodo = (db: Database, todo: ActiveTodo) -> Unit
-object PrintTodo = Todo -> Unit
+create TodoFilePath as from string select {
+  represent a valid path to a JSON file storing todos
+};
 
-let Config: Database = {
-  path: 'todo.db'
-}
+create TodoId as from string select {
+  are valid UUIDs
+};
 
-let initDb: InitDb = [
-  "connect to sqlite database at ${path}",
-  "create table todos with columns id, title, description, completed, createdAt"
-]
-let addTodo: AddTodo = [
-  let createdAt: String = eval "get the current time from the os",
-  let completed: Bool = false,
-  "insert new row into sqlite table todos of ${db} with the given ${title}, ${description}, ${completed} and ${createdAt}",
-  let todo: Todo = eval "create a Todo using the assigned id of the row in the table",
-  "return ${todo}"
-]
-let getTodo: GetTodo = [
-  let todo: Todo = eval "query the sqlite table todo in ${db} using the given ${id}",
-  "return ${todo}"
-]
-let listTodos: ListTodos = [
-  let todos: Todo = eval "query sqlite table todos in ${db}",
-  printTodo
-]
-let completeTodo: CompleteTodo = [
-  "update the row with the given ${todo.id} in table todos of the sqlite ${db} by setting completed = true"
-]
-let removeTodo: RemoveTodo = [
-  "delete the row with the given ${id} from table todos of the sqlite ${db}"
-]
-let printTodo: PrintTodo = [
-  "print ${id}, ${title}, ${completed}"
-]
+create CliArgs as (
+  command: string,
+  arguments: string[]
+);
 
-let main: Main = [
-  let input: CliInput = eval "read command and arguments from cli",
+create LoadTodos as from (path: TodoFilePath) -> Todo[] select {
+  1. read the JSON file at @path
+  2. return an empty list if the file does not exist
+  3. parse the JSON content into todos
+  4. throw an exception if the JSON is invalid
+};
 
-  if eval "${input.command} == 'init'" then initDb given Config,
+create SaveTodos as from (path: TodoFilePath, todos: Todo[]) -> unit select {
+  1. serialize @todos as formatted JSON
+  2. write the JSON to @path
+};
 
-  if eval "${input.command} == 'add'" then addTodo given { db: Config, title: input.arg1, description: input.arg2 },
+create CreateTodo as from (title: TodoTitle) -> Todo select {
+  1. generate a UUID for the todo id
+  2. create a todo with completed set to false
+  3. return the created todo
+};
 
-  if eval "${input.command} == 'list'" then listTodos given Config,
+create AddTodo as from (path: TodoFilePath, title: TodoTitle) -> Todo select {
+  1. call @LoadTodos using @path
+  2. call @CreateTodo using @title
+  3. append the new todo to the loaded todos
+  4. call @SaveTodos to persist the updated todos
+  5. return the created todo
+};
 
-  if eval "${input.command} == 'done'" then [
-    let todo: Todo = eval "get the todo with id ${input.arg1} from database ${Config}",
-    completeTodo given { db: Config, todo: todo }
-  ],
+create ListTodos as from (path: TodoFilePath) -> string select {
+  1. load todos using @LoadTodos
+  2. return a formatted string representation of all todos
+  3. show completed todos with a checkmark
+  4. show incomplete todos with an empty checkbox
+};
 
-  if eval "${input.command} == 'rm'" then removeTodo given { db: Config, id: input.arg1 },
+create CompleteTodo as from (path: TodoFilePath, id: TodoId) -> Todo select {
+  1. load todos using @LoadTodos
+  2. search for the todo matching @id
+  3. throw an exception if the todo does not exist
+  4. set the todo completed status to true
+  5. persist the updated todo list using @SaveTodos
+  6. return the updated todo
+};
 
-  "exit"
-]
+create ParseCliArgs as from string[] -> CliArgs select {
+  1. parse the command line arguments
+  2. extract the command name
+  3. extract the command arguments
+};
+
+create Main as from string[] -> unit select {
+  1. parse process arguments using @ParseCliArgs
+  2. if the command is "add": call @AddTodo
+  3. if the command is "list": call @ListTodos and print the result to stdout
+  4. if the command is "complete": call @CompleteTodo
+  5. print a help message if the command is invalid
+  6. print user-friendly error messages for exceptions
+};
+
+generate Main;

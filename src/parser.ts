@@ -1,10 +1,15 @@
 import { CstParser } from 'chevrotain'
 import {
   allTokens,
-  ObjectTok,
+  CreateTok,
+  AsTok,
+  FromTok,
   SelectTok,
-  WhereTok,
+  GenerateTok,
+  ImportTok,
+  ExportTok,
   ArrowTok,
+  SelectBlock,
   LCurly,
   RCurly,
   LBracket,
@@ -13,19 +18,14 @@ import {
   RParen,
   Colon,
   Comma,
+  Semicolon,
   Dot,
   Equals,
   Identifier,
   StringLiteral,
+  Instruction,
   NumberLiteral,
   BoolLiteral,
-  Instruction,
-  LetTok,
-  GivenTok,
-  IfTok,
-  ThenTok,
-  ElseTok,
-  EvalTok,
 } from './lexer.js'
 
 export class SpexParser extends CstParser {
@@ -47,26 +47,25 @@ export class SpexParser extends CstParser {
         ALT: () => this.SUBRULE(this.objectDeclaration),
       },
       {
-        GATE: this.BACKTRACK(this.instanceDeclaration),
-        ALT: () => this.SUBRULE(this.instanceDeclaration),
+        GATE: this.BACKTRACK(this.importDeclaration),
+        ALT: () => this.SUBRULE(this.importDeclaration),
+      },
+      {
+        GATE: this.BACKTRACK(this.exportDeclaration),
+        ALT: () => this.SUBRULE(this.exportDeclaration),
+      },
+      {
+        ALT: () => this.SUBRULE(this.generateDeclaration),
       },
     ])
   })
 
   private objectDeclaration = this.RULE('objectDeclaration', () => {
-    this.CONSUME(ObjectTok)
+    this.CONSUME(CreateTok)
     this.CONSUME(Identifier)
-    this.CONSUME(Equals)
+    this.CONSUME(AsTok)
     this.SUBRULE(this.objectExpression)
-  })
-
-  private instanceDeclaration = this.RULE('instanceDeclaration', () => {
-    this.CONSUME(LetTok)
-    this.CONSUME(Identifier)
-    this.CONSUME(Colon)
-    this.SUBRULE(this.objectExpression)
-    this.CONSUME(Equals)
-    this.SUBRULE(this.instanceExpression)
+    this.CONSUME(Semicolon)
   })
 
   private objectExpression = this.RULE('objectExpression', () => {
@@ -91,10 +90,18 @@ export class SpexParser extends CstParser {
         ALT: () => this.SUBRULE(this.namedObject),
       },
     ])
+    this.MANY(() => {
+      this.CONSUME(LBracket)
+      this.CONSUME(RBracket)
+    })
   })
 
   private namedObject = this.RULE('namedObject', () => {
     this.CONSUME(Identifier)
+    this.MANY(() => {
+      this.CONSUME(Dot)
+      this.CONSUME2(Identifier)
+    })
   })
 
   private productObject = this.RULE('productObject', () => {
@@ -109,129 +116,51 @@ export class SpexParser extends CstParser {
   })
 
   private subObject = this.RULE('subObject', () => {
-    this.CONSUME(SelectTok)
+    this.CONSUME(FromTok)
     this.SUBRULE(this.objectExpression, { LABEL: 'base' })
-    this.CONSUME(WhereTok)
-    this.SUBRULE2(this.instanceExpression, { LABEL: 'constraint' })
+    this.CONSUME(SelectTok)
+    this.CONSUME(SelectBlock)
   })
 
-  private instanceExpression = this.RULE('instanceExpression', () => {
-    this.SUBRULE(this.instancePrimary, { LABEL: 'base' })
-    this.MANY(() => {
-      this.CONSUME(Dot)
-      this.CONSUME(Identifier, { LABEL: 'property' })
-    })
-    this.MANY2(() => {
-      this.CONSUME(GivenTok)
-      this.SUBRULE(this.instanceExpression, { LABEL: 'givenInstance' })
-    })
-  })
-
-  private instancePrimary = this.RULE('instancePrimary', () => {
+  private importDeclaration = this.RULE('importDeclaration', () => {
+    this.CONSUME(ImportTok)
     this.OR([
       {
-        GATE: this.BACKTRACK(this.evalExpression),
-        ALT: () => this.SUBRULE(this.evalExpression),
+        GATE: this.BACKTRACK(this.namedImport),
+        ALT: () => this.SUBRULE(this.namedImport),
       },
       {
-        GATE: this.BACKTRACK(this.ifExpression),
-        ALT: () => this.SUBRULE(this.ifExpression),
-      },
-      {
-        GATE: this.BACKTRACK(this.composition),
-        ALT: () => this.SUBRULE(this.composition),
-      },
-      {
-        GATE: this.BACKTRACK(this.productInstance),
-        ALT: () => this.SUBRULE(this.productInstance),
-      },
-      {
-        ALT: () => this.SUBRULE(this.literalOrNamedInstance),
+        ALT: () => this.SUBRULE(this.moduleImport),
       },
     ])
+    this.CONSUME(Semicolon)
   })
 
-  private literalOrNamedInstance = this.RULE('literalOrNamedInstance', () => {
-    this.OR([
-      { ALT: () => this.CONSUME(Instruction) },
-      { ALT: () => this.CONSUME(StringLiteral) },
-      { ALT: () => this.CONSUME(NumberLiteral) },
-      { ALT: () => this.CONSUME(BoolLiteral) },
-      { ALT: () => this.CONSUME(Identifier) },
-    ])
-  })
-
-  private productInstance = this.RULE('productInstance', () => {
-    this.CONSUME(LCurly)
-    this.MANY(() => {
-      this.CONSUME(Identifier)
-      this.CONSUME(Colon)
-      this.SUBRULE(this.instanceExpression)
-      this.OPTION(() => this.CONSUME(Comma))
-    })
-    this.CONSUME(RCurly)
-  })
-
-  private composition = this.RULE('composition', () => {
-    this.CONSUME(LBracket)
-    this.MANY(() => {
-      this.OR([
-        {
-          GATE: this.BACKTRACK(this.localDeclaration),
-          ALT: () => this.SUBRULE(this.localDeclaration),
-        },
-        {
-          ALT: () => this.SUBRULE(this.instanceExpression),
-        },
-      ])
-      this.OPTION(() => this.CONSUME(Comma))
-    })
-    this.CONSUME(RBracket)
-  })
-
-  private localDeclaration = this.RULE('localDeclaration', () => {
-    this.OR([
-      {
-        GATE: this.BACKTRACK(this.localObjectDeclaration),
-        ALT: () => this.SUBRULE(this.localObjectDeclaration),
-      },
-      {
-        GATE: this.BACKTRACK(this.localInstanceDeclaration),
-        ALT: () => this.SUBRULE(this.localInstanceDeclaration),
-      },
-    ])
-  })
-
-  private localObjectDeclaration = this.RULE('localObjectDeclaration', () => {
-    this.CONSUME(ObjectTok)
+  private namedImport = this.RULE('namedImport', () => {
     this.CONSUME(Identifier)
-    this.CONSUME(Equals)
-    this.SUBRULE(this.objectExpression)
-  })
-
-  private localInstanceDeclaration = this.RULE('localInstanceDeclaration', () => {
-    this.CONSUME(LetTok)
-    this.CONSUME(Identifier)
-    this.CONSUME(Colon)
-    this.SUBRULE(this.objectExpression)
-    this.CONSUME(Equals)
-    this.SUBRULE(this.instanceExpression)
-  })
-
-  private evalExpression = this.RULE('evalExpression', () => {
-    this.CONSUME(EvalTok)
-    this.SUBRULE(this.instanceExpression, { LABEL: 'morphism' })
-  })
-
-  private ifExpression = this.RULE('ifExpression', () => {
-    this.CONSUME(IfTok)
-    this.SUBRULE(this.instanceExpression, { LABEL: 'condition' })
-    this.CONSUME(ThenTok)
-    this.SUBRULE2(this.instanceExpression, { LABEL: 'then' })
+    this.CONSUME(FromTok)
+    this.CONSUME(Instruction)
     this.OPTION(() => {
-      this.CONSUME(ElseTok)
-      this.SUBRULE3(this.instanceExpression, { LABEL: 'else' })
+      this.CONSUME(AsTok)
+      this.CONSUME2(Identifier)
     })
-    this.OPTION2(() => this.CONSUME(Comma))
+  })
+
+  private moduleImport = this.RULE('moduleImport', () => {
+    this.CONSUME(Instruction)
+    this.CONSUME(AsTok)
+    this.CONSUME(Identifier)
+  })
+
+  private exportDeclaration = this.RULE('exportDeclaration', () => {
+    this.CONSUME(ExportTok)
+    this.CONSUME(Identifier)
+    this.CONSUME(Semicolon)
+  })
+
+  private generateDeclaration = this.RULE('generateDeclaration', () => {
+    this.CONSUME(GenerateTok)
+    this.CONSUME(Identifier)
+    this.CONSUME(Semicolon)
   })
 }
