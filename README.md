@@ -1,6 +1,6 @@
 # Spex
 
-Spex is a language designed for programming with LLMs. It addresses shortcomings of the chat interface commonly used in AI coding assistant tools.
+Spex is a declarative language for AI-assisted software development. It addresses shortcomings of the chat interface commonly used in AI coding assistant tools.
 
 In particular, Spex aims to solve the following problems:
 
@@ -10,378 +10,494 @@ In particular, Spex aims to solve the following problems:
 - Chat interfaces do not integrate well with existing software engineering tools such as version control systems.
 - Referencing objects in the code base requires repetitive and verbose prompts.
 - Because architecture and design are not persisted, AI agents must constantly read and reason about multiple files, leading to inefficient token usage.
+- Reusability in chat interfaces is extremely limited and abstraction is arbitrary. 
 
 The idea behind chat interfaces in AI coding tools is that _everyone_ should be able to code. While admirable, this approach often makes the tools inadequate for professional developers.
 
-Spex acknowledges that in serious software projects it is neither wise nor feasible to replace programmers with machines. Instead, Spex integrates with the mental model and ecosystem of professional programmers, enabling them to be significantly more efficient.
+Spex acknowledges that in serious software projects it is neither wise nor feasible to replace programmers with machines. Instead, Spex integrates with the mental model and ecosystem of professional programmers, enabling them to be significantly more efficient. For this reason, Spex is probably not suited to someone that is not familiar with programming. This is a conscious decision made to cater to the needs of professional programmers and not the general public.
 
-For this reason, Spex syntax is intentionally close to common languages such as TypeScript and SQL.
+For this reason, Spex syntax is intentionally close to common languages such as TypeScript and SQL. Instead of manually implementing software, developers describe *spaces of valid implementations* using familiar programming abstractions such as:
 
-Spex is modeled after a **topos** in category theory. Like any category, it consists of:
+* objects
+* functions
+* dependencies
+* constraints
 
-- objects
-- morphisms
-- identities
-- composition
+The Spex runtime synthesizes concrete implementations based on these specifications.
 
-As a topos, it also introduces:
+---
 
-- product objects
-- exponential objects
-- a subobject classifier
+# Core Idea
 
-## Objects
+In Spex:
 
-Objects in Spex are similar to types in common programming languages.
+* a type represents a space of possible implementations
+* constraints refine that space
+* reusable abstractions are represented as subtypes
 
-Objects can be declared and aliased:
-
-```spex
-object BaseObject = Number
-object KeyValuePair = (s: String, n: Number)
-object CountCharacters = String -> Number
-object PositiveNumber = select Number where `it is positive`
-```
-
-### Basic Objects
-
-A small set of basic objects exist in the category. All other objects are constructed from them using products or exponentials.
-
-```
-String
-Number
-Bool
-Unit
-```
-
-- `Unit` is the **terminal object** in the category.
-- `Bool` is the **subobject classifier**.
-
-### Products
-
-Products combine multiple objects into a single object.
-
-Example:
+For example:
 
 ```spex
-(s: String, n: Number)
+CREATE SecureEndpoint AS
+FROM HttpRequest -> HttpResponse
+SELECT {
+  - the user is authenticated and authorised.
+  - The call is rate limited.
+};
 ```
 
-The identifiers `s` and `n` are **projections**. They behave like functions that extract the corresponding component from the product.
+`SecureEndpoint` now represents the set of all endpoint implementations satisfying those constraints.
 
-Example:
+Developers can build on top of these abstractions instead of repeatedly specifying common architectural concerns.
 
-```
-(n: Number)
-```
+---
 
-This is equivalent to the product `Number × Unit`. Since `Unit` is the identity of the product, `(n: Number)` is essentially the same as `Number`.
+# Design Goals
 
-The empty product:
+Spex is designed to:
 
-```
-()
-```
+* feel familiar to software developers
+* resemble SQL-style declarative programming
+* support compositional software synthesis
+* enable reusable architectural abstractions
 
-is equivalent to `Unit`.
+---
 
-### Exponentials
+# Objects
 
-Exponentials correspond to function types.
+Objects are analogous to types in a programming language. Objects can be translated to classes, structs, functions, etc.
 
-```
-A -> B
-```
+## Basic Objects
 
-Examples:
+Basic objects are provided by Spex natively. These objects represent the common basic types in a programming language:
 
 ```spex
-Unit -> Number
-PositiveNumber -> Bool
-(s: String, n: Number) -> Unit
-(n: Number) -> (b: Bool)
+string
+number
+bool
+unit
 ```
 
-Exponentials can appear inside other objects:
+`unit` is a special object that represent an empty type. It is useful in defining functions that take no input or do not return anything.
+
+## Products
+
+Product objects are created by combining other objects:
 
 ```spex
-(f: String -> Unit, s: String) -> Unit
+(
+  id: string,
+  done: bool
+)
 ```
 
-### Subobjects
-
-A subobject selects a subset of instances from an object.
-
-Example:
+`unit` objects in a product are ignored. Meaning, the following products are the same:
 
 ```spex
-select String where [
-  let ends_in_p_or_q: Bool = eval "the string ends in 'p' or 'q'",
-  let is_short: Bool = eval "the string has less than 10 characters",
-  "return true if the string ${ends_in_p_or_q} and ${is_short}"
-]
+(
+  id: string,
+  foo: unit
+)
+
+(
+  id: string
+)
 ```
 
-Subobjects may be defined for:
+Consequently, `()` and `unit` are the same object.
 
-- base objects
-- products
-- exponentials
-- other subobjects
+## Exponentials
 
-Subobjecting is a special feature of Spex that guides the implementation of the specification. For example, consider the following:
+Spex support function types as well which are refered to as exponential objects. An exponential is defined by its domain and codomain which have to be objects themselves:
 
 ```spex
-object NonNegativeNumber = select Number where "the number is greater or equals zero"
-
-let sqrt: NonNegativeNumber -> NonNegativeNumber = "compute the squre root of the given number"
+string -> number
+(id: string) -> number
+string -> unit
+unit -> string
 ```
+`string -> unit` represents all functions that take a string as input and do not return anything. `unit -> string` on the other hand, is a function that takes nothing as input, but returns a string.
 
-Many programming languages does not have a corresponding type for non-negative numbers. So when the agent is implementing the `sqrt` function it should write assertions to make sure the given number and the computed square root are both non-negative.
+## Subobjects
 
-While subobjecting basic objects (and hence products) is straight forward, subobjecting exponentials is more nuanced. No programming language has a standard method to make assertions about functions as of this writing. Subobjecting exponentials as a result could only be left to judgment of the agent to some extent.
-
-Consider the follwing specification:
+Subobjects are analogous to subsets. Subobjects refine an object by selecting memebers that satisfy some constraints. Constraints are defined through natural language:
 
 ```spex
-object DistanceFunction = select (x: Number, y: Number) -> NonNegativeNumber where [
-  let f: (x: Number, y: Number) -> NonNegativeNumber = eval "return the given morphism",
+FROM string
+SELECT {
+  are email addresses
+}
 
-  let is_zero_when_equal = eval "for all x we have ${f}(x,x) == 0",
-
-  let is_symmetric: Bool = eval "for all x,y we have ${f}(x,y) == ${f}(y,x)",
-
-  let satisfies_triangle_inequality = eval "for all x,y,z ${f}(x,z) <= ${f}(x,y) + ${f}(y,z)",
-
-  "return true if all of ${is_zero_when_equal}, ${is_symmetric} and ${satisfies_triangle_inequality} are true"
-]
-
-let abs: DistanceFunction = "compute the absolute value of subtracting ${x} from ${y}"
-```
-
-The agent has no method of proving `abs` is indeed an instance of `DistanceFunction` using most standard programming languages. So it has to make a judgment call to decide wether the provided instructions adhere to the conditions specified in the subobject or not. Best case scenario, it can write some tests to empirically assert the implementation is correct.
-
-## Instances
-
-Every object contains instances.
-
-Instances may be aliased:
-
-```spex
-let s: String = 'hello'
-
-let print: String -> Unit =
-  "print the given string in the console"
-```
-
-### Basic Object Instances
-
-Instances of basic objects are **literals**.
-
-Examples:
-
-```spex
-let s: String = 'hello'
-let n: Number = 1.2
-let b: Bool = true
-```
-
-The object `Unit` has exactly one instance:
-
-```
-{}
-```
-
-### Product Instances
-
-Instances of product objects are written as JSON records:
-
-```spex
-let kvp: KeyValuePair = {
-  s: 'pi',
-  n: 3.1415
+FROM string -> number
+SELECT {
+  return the length of the given string
 }
 ```
 
-### Exponential Instances
+Subobjects are themselves objects so they could be subobjected as well. A good heuristic for writing constraints is to make the expression read as: "from `object` select those that `{constraint}`".
 
-Instances of exponential objects are **morphisms**.
+# Named Objects
 
-Morphisms represent sequences of steps executed in order.
-
-Example:
+To name an object for reuse:
 
 ```spex
-let trap: (f: Number -> Number) -> Number = [
-  let int: Number = eval "approximate the integral of ${f} using the trapezoid rule",
-  "return ${int}"
-]
+CREATE Todo AS
+(
+    id: string,
+    title: string,
+    completed: bool,
+    created_at: string
+);
+
+CREATE EmailAddress AS
+FROM string
+SELECT {
+  are email addresses
+};
+
+CREATE slugify AS
+FROM string -> string
+SELECT {
+  return the slugified string
+};
 ```
 
-#### Instructions
+---
 
-Instructions represent natural-language steps. They are analogous to lambda expressions in a programming language.
+# Referencing
 
-They are written as double-quoted strings.
-
-Example:
+Spex allows referencing other objects in constraints using string interpolation as in template strings. The scope of a variable is determined using the same rules as in Typescript.
 
 ```spex
-"print 'hello'"
+CREATE Todo AS
+(
+    id: string,
+    title: string,
+    completed: bool,
+    created_at: string
+);
+
+CREATE validate AS
+FROM Todo -> bool
+SELECT {
+  return true if @created_at is a valid date and return false otherwise
+};
+
+CREATE CreateTodo AS
+FROM Todo -> Bool
+SELECT {
+  1. call @validate to validate the given todo
+  2. throw an exception if validation failed
+  3. insert the todo in the Todo table
+}
 ```
 
-Named instances can be referenced using interpolation:
+This forms an explicit software dependency graph between objects.
+
+Use `.` to reference a member of a product object:
 
 ```spex
-[
-  let hello: String = 'hello',
-  "print ${hello}"
-]
+CREATE ComplexNumber AS
+(
+    real: number,
+    imag: number
+);
+
+CREATE Abs AS
+FROM (z: ComplexNumber) -> number
+SELECT {
+  return square root of @z.real^2 + @z.imag^2
+}
 ```
 
-#### Composition
+---
 
-Morphisms may be composed.
+# Importing and Exporting
 
-Composition blocks are written using square brackets:
+If there is a need to reuse some object in other files, we have to export the object and then import it where it is needed.
+
+Suppose we have a file `types.spex` with the following content:
 
 ```spex
-[
-  "read the data from ${file}",
-  "insert it in the table"
-]
+CREATE EmailAddress AS
+FROM string
+SELECT {
+  are email addresses
+};
+
+CREATE Password AS
+FROM string
+SELECT {
+  - have at least 8 characters
+  - contain at least one upper case character
+  - contain at least one lower case character
+  - contain at least one number character
+  - contain at least one special character
+};
+
+EXPORT EmailAddress;
+EXPORT Password;
 ```
 
-Steps inside a composition execute sequentially. It is possible to declare objects or instances in between steps which could be refrenced in the scope of the composition.
-
-#### Given Expression
-
-The `given` keyword is used to make a partial morphism from an exponential instance.
-
-Example:
+Then, we can import `EmailAddress` as itself in some other file:
 
 ```spex
-let add: (x: Number, y: Number) -> Number = "add ${x} to ${y}"
-
-let increment: (x: Number) -> Number = functionNorm given { y: 1 }
+IMPORT EmailAddress FROM "types.spex";
 ```
 
-#### If Expression
-
-An `if` statement executes one of two branches based on a given `Bool` instance.
+Or give it a different alias:
 
 ```spex
-[
-  let input: CliInput = eval "read the arguments from command line",
-
-  if eval "${input.command} equals 'add'"
-  then addTodo given { description: input.arg }
-  else printHelp
-]
+IMPORT EmailAddress FROM "types.spex" AS Username;
 ```
 
-### Eval Expression
-
-The `eval` keyword is used to execute a morphism that has `Unit` as its domain.
-
-Example
+Or import the whole file:
 
 ```spex
-let hello: String = eval "return 'hello'"
+IMPORT "types.spex" AS type;
 ```
 
-`eval` and `given` could be chained together to execute a morphism with a domain other than `Unit`.
-
-Example
+In case the whole file is imported, it's objects could be referenced by:
 
 ```spex
-let sum: Number = eval "add ${a} to ${b}" given { a: 1, b: 2 }
+IMPORT "types.spex" AS types;
+
+CREATE SignUp AS
+FROM (user: types.EmailAddress, pass: types.Password) -> string
+SELECT {
+  1. Check @user doesn't exists
+  2. throw an error if the user exists
+  3. add @user to the User table alongside the SHA-256 hash of @pass
+  4. return the id of the newly created user
+}
 ```
 
-### Property Access
+---
 
-Property access allows referencing fields of product instances using dot notation.
+# Generating Code
+
+To specify what objects in an specification has to be generated as explicit code:
 
 ```spex
-let input: CliInput = eval "read command and arguments from cli"
-
-let config: Config = eval "load configuration"
-
-// Access properties with dot notation
-let todo: Todo = eval "get todo with id ${input.arg1} from ${config.db}"
+GENERATE CreateTodo
 ```
 
-Nested property access is supported:
+Generation of some object naturally triggers generation of it's dependencies as well.
+
+---
+
+# Why SQL?
+
+Spex uses SQL-inspired syntax because developers already understand:
+
+* schemas
+* views
+* refinement through selection
+* declarative programming
+* dependency relationships
+
+This dramatically reduces the learning curve.
+
+---
+
+# Long-Term Vision
+
+Spex aims to provide:
+
+* reusable semantic software abstractions
+* compositional AI-assisted programming
+* declarative architecture specification
+* implementation synthesis guided by constraints
+
+Instead of prompting LLMs directly, developers work with structured software semantics that can be analyzed, refined, verified, and synthesized.
+
+# Example: Todo CLI App
+
+This example demonstrates a simple command-line Todo application written in Spex.
+
+The application supports:
+
+- adding todos
+- listing todos
+- marking todos as completed
+- persisting todos to disk
+- validating input
+
+---
+
+## Domain Objects
 
 ```spex
-let path: String = config.database.path
+CREATE TodoTitle AS
+FROM string
+SELECT {
+  - are not empty
+  - are shorter than 120 characters
+};
+
+CREATE Todo AS
+(
+    id: string,
+    title: TodoTitle,
+    completed: bool
+);
 ```
 
-Property access works with:
+---
 
-- Named instances: `input.arg1`
-- Interpolated strings: `"${input.arg1}"`
-- Product instances in `given` expressions
+## Storage Layer
 
-## Grammar
+```spex
+CREATE TodoFilePath AS
+FROM string
+SELECT {
+  represent a valid path to a JSON file storing todos
+};
 
-```
-spexFile        ::= declaration*
+CREATE LoadTodos AS
+FROM (path: TodoFilePath) -> Todo[]
+SELECT {
+  1. read the JSON file at @path
+  2. return an empty list if the file does not exist
+  3. parse the JSON content into todos
+  4. throw an exception if the JSON is invalid
+};
 
-declaration     ::= objectDeclaration | instanceDeclaration
-
-objectDeclaration
-                ::= 'object' Identifier '=' objectExpression
-
-objectExpression
-                ::= objectOperand ('->' objectExpression)?
-
-objectOperand   ::= subObject | productObject | Identifier
-
-productObject   ::= '(' (Identifier ':' objectExpression ',')* ')'
-
-subObject       ::= 'select' objectExpression 'where' instanceExpression
-
-instanceDeclaration
-                ::= 'let' Identifier ':' objectExpression '=' instanceExpression
-
-instanceExpression
-                ::= instancePrimary ('.' Identifier | 'given' instanceExpression)*
-
-instancePrimary ::= evalExpression
-                |   ifExpression
-                |   composition
-                |   productInstance
-                |   literalOrNamedInstance
-
-literalOrNamedInstance
-                ::= Instruction | StringLiteral | NumberLiteral | BoolLiteral | Identifier
-
-productInstance ::= '{' (Identifier ':' instanceExpression ',')* '}'
-
-composition     ::= '[' (localDeclaration | instanceExpression ',')* ']'
-
-localDeclaration
-                ::= objectDeclaration | instanceDeclaration
-
-evalExpression  ::= 'eval' instanceExpression
-
-ifExpression    ::= 'if' instanceExpression 'then' instanceExpression ('else' instanceExpression)? ','?
+CREATE SaveTodos AS
+FROM (
+  path: TodoFilePath,
+  todos: Todo[]
+) -> unit
+SELECT {
+  1. serialize @todos as formatted JSON
+  2. write the JSON to @path
+};
 ```
 
-Note: `given` is a suffix that accepts any `instanceExpression`, enabling:
+---
 
-- Property access: `f given input.arg1`
-- Eval expressions: `f given eval "..."`
-- Nested given: `f given g given h`
-- If expressions: `f given if x then y else z`
-- Compositions: `f given [ ... ]`
+## Todo Creation
 
-### Token Reference
+```spex
+CREATE CreateTodo AS
+FROM (
+  title: TodoTitle
+) -> Todo
+SELECT {
+  1. generate a UUID for the todo id
+  2. create a todo with completed set to false
+  3. return the created todo
+};
+```
 
-| Token      | Pattern                                                                   | Description                    |
-| ---------- | ------------------------------------------------------------------------- | ------------------------------ |
-| Keywords   | `object`, `let`, `select`, `where`, `if`, `then`, `else`, `eval`, `given` | Language keywords              |
-| Symbols    | `->`, `{}`, `[]`, `()`, `:`, `,`, `.`, `=`                                | Syntax delimiters              |
-| Literals   | `'...'`, numbers, `true`/`false`                                          | String, number, boolean values |
-| Identifier | `[a-zA-Z_][a-zA-Z0-9_]*`                                                  | Variable and type names        |
+---
+
+## Add Todo Command
+
+```spex
+CREATE AddTodo AS
+FROM (
+  path: TodoFilePath,
+  title: TodoTitle
+) -> Todo
+SELECT {
+  1. call @LoadTodos using @path
+  2. call @CreateTodo using @title
+  3. append the new todo to the loaded todos
+  4. call @SaveTodos to persist the updated todos
+  5. return the created todo
+};
+```
+
+---
+
+## List Todos Command
+
+```spex
+CREATE ListTodos AS
+FROM (
+  path: TodoFilePath
+) -> string
+SELECT {
+  1. load todos using @LoadTodos
+  2. return a formatted string representation of all todos
+  3. show completed todos with a checkmark
+  4. show incomplete todos with an empty checkbox
+};
+```
+
+---
+
+## Complete Todo Command
+
+```spex
+CREATE CompleteTodo AS
+FROM (
+  path: TodoFilePath,
+  id: TodoId
+) -> Todo
+SELECT {
+  1. load todos using @LoadTodos
+  2. search for the todo matching @id
+  3. throw an exception if the todo does not exist
+  4. set the todo completed status to true
+  5. persist the updated todo list using @SaveTodos
+  6. return the updated todo
+};
+```
+
+---
+
+## CLI Parsing
+
+```spex
+CREATE CliArgs AS
+(
+    command: string,
+    arguments: string[]
+);
+
+CREATE ParseCliArgs AS
+FROM string[] -> CliArgs
+SELECT {
+  1. parse the command line arguments
+  2. extract the command name
+  3. extract the command arguments
+};
+```
+
+---
+
+## CLI Entry Point
+
+```spex
+CREATE Main AS
+FROM string[] -> unit
+SELECT {
+  1. parse process arguments using @ParseCliArgs
+
+  2. if the command is "add":
+     - call @AddTodo
+
+  3. if the command is "list":
+     - call @ListTodos
+     - print the result to stdout
+
+  4. if the command is "complete":
+     - call @CompleteTodo
+
+  5. print a help message if the command is invalid
+
+  6. print user-friendly error messages for exceptions
+};
+```
+
+---
+
+## Code Generation
+
+```spex
+GENERATE Main
+```
+
+This triggers generation of the complete CLI application and all required dependencies.
