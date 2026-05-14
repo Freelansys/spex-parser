@@ -1,41 +1,42 @@
 import { createToken, Lexer } from 'chevrotain'
 
-// -----------------
-// Whitespace
-// -----------------
-
 export const WhiteSpace = createToken({
   name: 'WhiteSpace',
   pattern: /\s+/,
   group: Lexer.SKIPPED,
 })
 
-// -----------------
-// Keywords
-// -----------------
-
-export const LetTok = createToken({
-  name: 'LetTok',
-  pattern: /let\b/,
+// Keywords (case-insensitive)
+export const CreateTok = createToken({
+  name: 'CreateTok',
+  pattern: /create\b/i,
 })
-export const ObjectTok = createToken({
-  name: 'ObjectTok',
-  pattern: /object\b/,
+export const AsTok = createToken({
+  name: 'AsTok',
+  pattern: /as\b/i,
+})
+export const FromTok = createToken({
+  name: 'FromTok',
+  pattern: /from\b/i,
 })
 export const SelectTok = createToken({
   name: 'SelectTok',
-  pattern: /select\b/,
+  pattern: /select\b/i,
 })
-export const WhereTok = createToken({ name: 'WhereTok', pattern: /where\b/ })
-export const IfTok = createToken({ name: 'IfTok', pattern: /if\b/ })
-export const ThenTok = createToken({ name: 'ThenTok', pattern: /then\b/ })
-export const ElseTok = createToken({ name: 'ElseTok', pattern: /else\b/ })
-export const EvalTok = createToken({ name: 'EvalTok', pattern: /eval\b/ })
-export const GivenTok = createToken({ name: 'GivenTok', pattern: /given\b/ })
+export const GenerateTok = createToken({
+  name: 'GenerateTok',
+  pattern: /generate\b/i,
+})
+export const ImportTok = createToken({
+  name: 'ImportTok',
+  pattern: /import\b/i,
+})
+export const ExportTok = createToken({
+  name: 'ExportTok',
+  pattern: /export\b/i,
+})
 
-// -----------------
 // Symbols
-// -----------------
 export const ArrowTok = createToken({ name: 'ArrowTok', pattern: /->/ })
 export const LCurly = createToken({ name: 'LCurly', pattern: /{/ })
 export const RCurly = createToken({ name: 'RCurly', pattern: /}/ })
@@ -45,59 +46,58 @@ export const LParen = createToken({ name: 'LParen', pattern: /\(/ })
 export const RParen = createToken({ name: 'RParen', pattern: /\)/ })
 export const Colon = createToken({ name: 'Colon', pattern: /:/ })
 export const Comma = createToken({ name: 'Comma', pattern: /,/ })
-export const LAngle = createToken({ name: 'LAngle', pattern: /</ })
-export const RAngle = createToken({ name: 'RAngle', pattern: />/ })
+export const Semicolon = createToken({ name: 'Semicolon', pattern: /;/ })
 export const Dot = createToken({ name: 'Dot', pattern: /\./ })
-export const Equals = createToken({ name: 'Equals', pattern: /=/ })
 
-// -----------------
-// Constants
-// -----------------
-
-export const StringLiteral = createToken({
-  name: 'StringLiteral',
-  pattern: /'([^'\\]|\\.)*'/,
+// Brace text block (for SELECT { ... })
+export const SelectBlock = createToken({
+  name: 'SelectBlock',
+  pattern: /\{[^}]+\}/,
 })
 
-export const NumberLiteral = createToken({
-  name: 'NumberLiteral',
-  pattern: /-?((\.[0-9]+)|([0-9]+(\.[0-9]*)?))([eE][+-]?[0-9]+)?/,
-})
-
-export const BoolLiteral = createToken({
-  name: 'BoolLiteral',
-  pattern: /\b(true|false)\b/,
-})
-
-export const Instruction = createToken({
-  name: 'Instruction',
+// Literals
+export const PathLiteral = createToken({
+  name: 'PathLiteral',
   pattern: /"([^"\\]|\\.)*"/,
 })
 
-// -----------------
-// Identifiers
-// -----------------
+// Basic objects (native types)
+export const StringTok = createToken({
+  name: 'StringTok',
+  pattern: /string\b/i,
+})
+export const NumberTok = createToken({
+  name: 'NumberTok',
+  pattern: /number\b/i,
+})
+export const BoolTok = createToken({
+  name: 'BoolTok',
+  pattern: /bool\b/i,
+})
+export const UnitTok = createToken({
+  name: 'UnitTok',
+  pattern: /unit\b/i,
+})
 
+// Identifiers
 export const Identifier = createToken({
   name: 'Identifier',
   pattern: /[a-zA-Z_][a-zA-Z0-9_]*/,
 })
 
-// Order matters: keywords must come before Identifier
 export const allTokens = [
   WhiteSpace,
 
-  LetTok,
-  ObjectTok,
+  CreateTok,
+  AsTok,
+  FromTok,
   SelectTok,
-  WhereTok,
-  IfTok,
-  ThenTok,
-  ElseTok,
-  EvalTok,
-  GivenTok,
+  GenerateTok,
+  ImportTok,
+  ExportTok,
 
   ArrowTok,
+  SelectBlock,
   LCurly,
   RCurly,
   LBracket,
@@ -106,15 +106,14 @@ export const allTokens = [
   RParen,
   Colon,
   Comma,
-  LAngle,
-  RAngle,
+  Semicolon,
   Dot,
-  Equals,
+  PathLiteral,
 
-  StringLiteral,
-  NumberLiteral,
-  BoolLiteral,
-  Instruction,
+  StringTok,
+  NumberTok,
+  BoolTok,
+  UnitTok,
 
   Identifier,
 ]

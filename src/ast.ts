@@ -3,7 +3,11 @@ export type SpexFile = {
   declarations: Declaration[]
 }
 
-export type Declaration = ObjectDeclaration | InstanceDeclaration
+export type Declaration =
+  | ObjectDeclaration
+  | ImportDeclaration
+  | ExportDeclaration
+  | GenerateDeclaration
 
 export type ObjectDeclaration = {
   kind: 'ObjectDeclaration'
@@ -11,22 +15,29 @@ export type ObjectDeclaration = {
   object: ObjectExpression
 }
 
-export type InstanceDeclaration = {
-  kind: 'InstanceDeclaration'
-  name: string
-  type: ObjectExpression
-  instance: InstanceExpression
+export type ImportDeclaration = {
+  kind: 'ImportDeclaration'
+  name: string | null
+  source: string
+  alias: string | null
 }
 
-export type ObjectExpression = NamedObject | ProductObject | ExponentialObject | SubObject
+export type ExportDeclaration = {
+  kind: 'ExportDeclaration'
+  name: string
+}
 
-export type InstanceExpression =
-  | Literal
-  | NamedInstance
-  | PropertyAccess
-  | ProductInstance
-  | ExponentialInstance
-  | EvalExpression
+export type GenerateDeclaration = {
+  kind: 'GenerateDeclaration'
+  name: string
+}
+
+export type ObjectExpression =
+  | NamedObject
+  | ProductObject
+  | ExponentialObject
+  | SubObject
+  | ArrayObject
 
 export type NamedObject = {
   kind: 'NamedObject'
@@ -47,75 +58,10 @@ export type ExponentialObject = {
 export type SubObject = {
   kind: 'SubObject'
   base: ObjectExpression
-  constraint: InstanceExpression
+  constraint: string
 }
 
-export type Literal = StringLiteral | NumberLiteral | BoolLiteral | UnitLiteral
-
-export type NamedInstance = {
-  kind: 'NamedInstance'
-  name: string
+export type ArrayObject = {
+  kind: 'ArrayObject'
+  base: ObjectExpression
 }
-
-export type PropertyAccess = {
-  kind: 'PropertyAccess'
-  object: InstanceExpression
-  property: string
-}
-
-export type ProductInstance = {
-  kind: 'ProductInstance'
-  fields: Record<string, InstanceExpression>
-}
-
-export type ExponentialInstance = Instruction | Composition | IfExpression | GivenExpression
-
-export type EvalExpression = {
-  kind: 'EvalExpression'
-  morphism: InstanceExpression
-}
-
-export type StringLiteral = {
-  kind: 'StringLiteral'
-  value: string
-}
-
-export type NumberLiteral = {
-  kind: 'NumberLiteral'
-  value: number
-}
-
-export type BoolLiteral = {
-  kind: 'BoolLiteral'
-  value: boolean
-}
-
-export type UnitLiteral = {
-  kind: 'UnitLiteral'
-  value: {}
-}
-
-export type Instruction = {
-  kind: 'Instruction'
-  text: string
-}
-
-export type Composition = {
-  kind: 'Composition'
-  steps: Step[]
-}
-
-export type IfExpression = {
-  kind: 'IfExpression'
-  condition: InstanceExpression
-  then: InstanceExpression
-  else: InstanceExpression | null
-}
-
-export type GivenExpression = {
-  kind: 'GivenExpression'
-  morphism: InstanceExpression
-  instance: InstanceExpression
-}
-
-export type Step = InstanceExpression | Declaration

@@ -1,322 +1,227 @@
-import { describe, it, expect } from "vitest";
-import { SpexParser } from "../src/parser.js";
-import { SpexLexer } from "../src/lexer.js";
+import { describe, it, expect } from 'vitest'
+import { SpexParser } from '../src/parser.js'
+import { SpexLexer } from '../src/lexer.js'
 
-const parser = new SpexParser();
+const parser = new SpexParser()
 
 function parseInput(text: string) {
-  const lexingResult = SpexLexer.tokenize(text);
-  parser.input = lexingResult.tokens;
-  const cst = parser.spexFile() as any;
-  return { parser, cst };
+  const lexingResult = SpexLexer.tokenize(text)
+  parser.input = lexingResult.tokens
+  const cst = parser.spexFile() as any
+  return { parser, cst }
 }
 
-describe("SpecParser", () => {
-  describe("object declaration", () => {
-    it("should parse named object declaration", () => {
-      const testCase = "object MyObject = Number";
-      const { parser } = parseInput(testCase);
-      expect(parser.errors).toHaveLength(0);
-    });
+describe('SpexParser', () => {
+  describe('object declaration', () => {
+    it('should parse named object declaration', () => {
+      const testCase = 'create MyObject as Number;'
+      const { parser } = parseInput(testCase)
+      expect(parser.errors).toHaveLength(0)
+    })
 
-    it("should parse product object declaration", () => {
-      const testCase = "object MyProduct = (n: Number, s: String)";
-      const { parser } = parseInput(testCase);
-      expect(parser.errors).toHaveLength(0);
-    });
+    it('should parse product object declaration', () => {
+      const testCase = 'create MyProduct as (n: Number, s: String);'
+      const { parser } = parseInput(testCase)
+      expect(parser.errors).toHaveLength(0)
+    })
 
-    it("should parse product object declaration with trailing commas", () => {
-      const testCase = "object MyProduct = (n: Number, s: String,)";
-      const { parser } = parseInput(testCase);
-      expect(parser.errors).toHaveLength(0);
-    });
+    it('should parse product object declaration with trailing commas', () => {
+      const testCase = 'create MyProduct as (n: Number, s: String,);'
+      const { parser } = parseInput(testCase)
+      expect(parser.errors).toHaveLength(0)
+    })
 
-    it("should parse product object declaration with exponential objects", () => {
-      const testCase = "object MyProduct = (f: Number -> String, n: Number)";
-      const { parser } = parseInput(testCase);
-      expect(parser.errors).toHaveLength(0);
-    });
+    it('should parse product object declaration with exponential objects', () => {
+      const testCase = 'create MyProduct as (f: Number -> String, n: Number);'
+      const { parser } = parseInput(testCase)
+      expect(parser.errors).toHaveLength(0)
+    })
 
-    it("should parse product object declaration with subobjects", () => {
-      const testCase = `object MyProduct = (p: select Number where "value is positive", n: Number)`;
-      const { parser } = parseInput(testCase);
-      expect(parser.errors).toHaveLength(0);
-    });
-
-    it("should parse exponential object declaration with named object", () => {
-      const testCase = "object MyExponential = Number -> Unit";
-      const { parser } = parseInput(testCase);
-      expect(parser.errors).toHaveLength(0);
-    });
-
-    it("should parse exponential object declaration with product objects", () => {
-      const testCase = "object MyExponential = (n: Number) -> (s: String)";
-      const { parser } = parseInput(testCase);
-      expect(parser.errors).toHaveLength(0);
-    });
-
-    it("should parse exponential object declaration with exponential objects", () => {
+    it('should parse product object declaration with subobjects', () => {
       const testCase =
-        "object MyExponential = (f: Number -> String, n: Number) -> String";
-      const { parser } = parseInput(testCase);
-      expect(parser.errors).toHaveLength(0);
-    });
+        'create MyProduct as (p: from Number select { value is positive }, n: Number);'
+      const { parser } = parseInput(testCase)
+      expect(parser.errors).toHaveLength(0)
+    })
 
-    it("should parse exponential object declaration with subobjects", () => {
-      const testCase = `object MyExponential = select Number where "value is positive" -> select Number where "value is positive"`;
-      const { parser } = parseInput(testCase);
-      expect(parser.errors).toHaveLength(0);
-    });
+    it('should parse exponential object declaration with named object', () => {
+      const testCase = 'create MyExponential as Number -> Unit;'
+      const { parser } = parseInput(testCase)
+      expect(parser.errors).toHaveLength(0)
+    })
 
-    it("should parse subobject declaration with named objects", () => {
-      const testCase = `object PositiveNumber = select Number where isPositive`;
-      const { parser } = parseInput(testCase);
-      expect(parser.errors).toHaveLength(0);
-    });
+    it('should parse exponential object declaration with product objects', () => {
+      const testCase = 'create MyExponential as (n: Number) -> (s: String);'
+      const { parser } = parseInput(testCase)
+      expect(parser.errors).toHaveLength(0)
+    })
 
-    it("should parse subobject declaration with named objects and instruction condition", () => {
-      const testCase = `object PositiveNumber = select Number where "the number is positive"`;
-      const { parser } = parseInput(testCase);
-      expect(parser.errors).toHaveLength(0);
-    });
+    it('should parse exponential object declaration with exponential objects', () => {
+      const testCase = 'create MyExponential as (f: Number -> String, n: Number) -> String;'
+      const { parser } = parseInput(testCase)
+      expect(parser.errors).toHaveLength(0)
+    })
 
-    it("should parse subobject declaration with named objects and composition condition", () => {
-      const testCase = `object PositiveNumber = select Number where [
-        let isPositive: Bool = "the number is positive",
-        "return true if both \${isPositive} and odd"
-      ]`;
-      const { parser } = parseInput(testCase);
-      expect(parser.errors).toHaveLength(0);
-    });
-
-    it("should parse subobject declaration with product objects", () => {
-      const testCase = `object MySubobject = select (n: Number, s: String) where "\${n} is positive"`;
-      const { parser } = parseInput(testCase);
-      expect(parser.errors).toHaveLength(0);
-    });
-
-    it("should parse subobject declaration with exponential objects", () => {
-      const testCase = `object MySubobject = select (n: Number, s: String) -> Bool where "logs the given input"`;
-      const { parser } = parseInput(testCase);
-      expect(parser.errors).toHaveLength(0);
-    });
-
-    it("should parse subobject declaration with subobjects", () => {
-      const testCase = `object MySubobject = select select Number where "value is positive" where "value is odd"`;
-      const { parser } = parseInput(testCase);
-      expect(parser.errors).toHaveLength(0);
-    });
-  });
-
-  describe("instance declaration", () => {
-    it("should parse literal declaration", () => {
-      const testCase = "let test: Number = 1";
-      const { parser } = parseInput(testCase);
-      expect(parser.errors).toHaveLength(0);
-    });
-
-    it("should parse eval expression declaration", () => {
-      const testCase = `let test: Number = eval "return 2"`;
-      const { parser } = parseInput(testCase);
-      expect(parser.errors).toHaveLength(0);
-    });
-
-    it("should parse eval with given expression declaration", () => {
-      const testCase = `let test: Number = eval "return \${a}" given { a: 2 }`;
-      const { parser } = parseInput(testCase);
-      expect(parser.errors).toHaveLength(0);
-    });
-
-    it("should parse named object instance declaration", () => {
-      const testCase = "let test: Number = last";
-      const { parser } = parseInput(testCase);
-      expect(parser.errors).toHaveLength(0);
-    });
-
-    it("should parse product object instance declaration", () => {
+    it('should parse exponential object declaration with subobjects', () => {
       const testCase =
-        "let test: (s: String, n: Number) = { s: 'hello', n: 1 }";
-      const { parser } = parseInput(testCase);
-      expect(parser.errors).toHaveLength(0);
-    });
+        'create MyExponential as from Number select { value is positive } -> from Number select { value is positive };'
+      const { parser } = parseInput(testCase)
+      expect(parser.errors).toHaveLength(0)
+    })
 
-    it("should parse product object instance declaration with trailing commas", () => {
+    it('should parse subobject declaration with text constraint', () => {
+      const testCase = 'create PositiveNumber as from Number select { are positive };'
+      const { parser } = parseInput(testCase)
+      expect(parser.errors).toHaveLength(0)
+    })
+
+    it('should parse subobject declaration with product objects', () => {
       const testCase =
-        "let test: (s: String, n: Number) = { s: 'hello', n: 1, }";
-      const { parser } = parseInput(testCase);
-      expect(parser.errors).toHaveLength(0);
-    });
+        'create MySubobject as from (n: Number, s: String) select { have a positive @n };'
+      const { parser } = parseInput(testCase)
+      expect(parser.errors).toHaveLength(0)
+    })
 
-    it("should parse exponential object instance with named instance declaration", () => {
-      const testCase = `let test: String -> Number = countAs`;
-      const { parser } = parseInput(testCase);
-      expect(parser.errors).toHaveLength(0);
-    });
-
-    it("should parse exponential object named instance declaration", () => {
-      const testCase = `let test: String -> Number = countAs given { mul: Number }`;
-      const { parser } = parseInput(testCase);
-      expect(parser.errors).toHaveLength(0);
-    });
-
-    it("should parse exponential object instance instruction declaration", () => {
-      const testCase = `let test: String -> Number = "count 'a's in the string"`;
-      const { parser } = parseInput(testCase);
-      expect(parser.errors).toHaveLength(0);
-    });
-
-    it("should parse exponential object instance composition declaration with single instruction", () => {
-      const testCase = `let test: String -> Number = [
-        "count 'a's in the string and return it"
-      ]`;
-      const { parser } = parseInput(testCase);
-      expect(parser.errors).toHaveLength(0);
-    });
-
-    it("should parse exponential object instance composition declaration with multiple instruction", () => {
-      const testCase = `let test: String -> Number = [
-        let count: Number = eval "count 'a's in the string",
-        "return \${count}*2"
-      ]`;
-      const { parser } = parseInput(testCase);
-      expect(parser.errors).toHaveLength(0);
-    });
-
-    it("should parse exponential object instance composition declaration with named instances", () => {
-      const testCase = `let test: String -> Number = [
-        let count: Number = eval "count 'a's in the string",
-        doThis,
-        doThat given { s: String },
-        "return \${count}*2"
-      ]`;
-      const { parser } = parseInput(testCase);
-      expect(parser.errors).toHaveLength(0);
-    });
-
-    it("should parse exponential object instance composition declaration with trailing commas", () => {
-      const testCase = `let test: String -> Number = [
-        let count: Number = eval "count 'a's in the string",
-        "return \${count}*2",
-      ]`;
-      const { parser } = parseInput(testCase);
-      expect(parser.errors).toHaveLength(0);
-    });
-
-    it("should parse exponential object instance composition declaration with if expression", () => {
-      const testCase = `let test: String -> Number = [
-        let count: Number = eval "count 'a's in the string",
-        if true then "return \${count}*2"
-      ]`;
-      const { parser } = parseInput(testCase);
-      expect(parser.errors).toHaveLength(0);
-    });
-
-    it("should parse exponential object instance composition declaration with if and eval expression", () => {
-      const testCase = `let test: String -> Number = [
-        let count: Number = eval "count 'a's in the string",
-        if eval "return true" then "return \${count}*2"
-      ]`;
-      const { parser } = parseInput(testCase);
-      expect(parser.errors).toHaveLength(0);
-    });
-
-    it("should parse exponential object instance composition declaration with if else expression", () => {
-      const testCase = `let test: String -> Number = [
-        let count: Number = eval "count 'a's in the string",
-        if true then "return \${count}*2" else "return -1"
-      ]`;
-      const { parser } = parseInput(testCase);
-      expect(parser.errors).toHaveLength(0);
-    });
-
-    it("should parse exponential object instance nested composition declaration with if else expression", () => {
-      const testCase = `let test: String -> Number = [
-        let count: Number = eval "count 'a's in the string",
-        if true then [
-          "do something",
-          "return \${count}*2"
-        ] else [
-          "do something else,
-          "return -1",
-        ]
-      ]`;
-      const { parser } = parseInput(testCase);
-      expect(parser.errors).toHaveLength(0);
-    });
-
-    it("should parse property access on named instance", () => {
-      const testCase = "let test: String = input.arg1";
-      const { parser } = parseInput(testCase);
-      expect(parser.errors).toHaveLength(0);
-    });
-
-    it("should parse nested property access", () => {
-      const testCase = "let test: String = foo.bar.baz";
-      const { parser } = parseInput(testCase);
-      expect(parser.errors).toHaveLength(0);
-    });
-
-    it("should parse property access in product instance", () => {
-      const testCase = "let test: (s: String) = { s: config.path }";
-      const { parser } = parseInput(testCase);
-      expect(parser.errors).toHaveLength(0);
-    });
-
-    it("should parse given with named instance", () => {
-      const testCase = "let test: String -> Number = countAs given db";
-      const { parser } = parseInput(testCase);
-      expect(parser.errors).toHaveLength(0);
-    });
-
-    it("should parse given with product instance", () => {
+    it('should parse subobject declaration with exponential objects', () => {
       const testCase =
-        "let test: String -> Number = countAs given { db: Database }";
-      const { parser } = parseInput(testCase);
-      expect(parser.errors).toHaveLength(0);
-    });
+        'create MySubobject as from (n: Number, s: String) -> Bool select { log the given input };'
+      const { parser } = parseInput(testCase)
+      expect(parser.errors).toHaveLength(0)
+    })
 
-    it("should parse if expression with trailing comma", () => {
-      const testCase = `let test: Number = [ if true then x, y ]`;
-      const { parser } = parseInput(testCase);
-      expect(parser.errors).toHaveLength(0);
-    });
-
-    it("should parse given with string literal", () => {
-      const testCase = 'let test: String -> Number = f given "the input"';
-      const { parser } = parseInput(testCase);
-      expect(parser.errors).toHaveLength(0);
-    });
-
-    it("should parse given with property access", () => {
-      const testCase = "let test: String -> Number = f given config.db";
-      const { parser } = parseInput(testCase);
-      expect(parser.errors).toHaveLength(0);
-    });
-
-    it("should parse given with eval expression", () => {
-      const testCase = 'let test: String -> Number = f given eval "get value"';
-      const { parser } = parseInput(testCase);
-      expect(parser.errors).toHaveLength(0);
-    });
-
-    it("should parse given with if expression", () => {
+    it('should parse subobject declaration with subobjects', () => {
       const testCase =
-        "let test: String -> Number = f given if cond then a else b";
-      const { parser } = parseInput(testCase);
-      expect(parser.errors).toHaveLength(0);
-    });
+        'create MySubobject as from from Number select { value is positive } select { value is odd };'
+      const { parser } = parseInput(testCase)
+      expect(parser.errors).toHaveLength(0)
+    })
 
-    it("should parse given with composition", () => {
+    it('should parse array type declaration', () => {
+      const testCase = 'create MyArray as string[];'
+      const { parser } = parseInput(testCase)
+      expect(parser.errors).toHaveLength(0)
+    })
+
+    it('should parse array of product type', () => {
+      const testCase = 'create MyArray as (n: Number)[];'
+      const { parser } = parseInput(testCase)
+      expect(parser.errors).toHaveLength(0)
+    })
+
+    it('should parse nested array type', () => {
+      const testCase = 'create MyArray as string[][];'
+      const { parser } = parseInput(testCase)
+      expect(parser.errors).toHaveLength(0)
+    })
+
+    it('should parse object declaration with dotted name', () => {
       const testCase =
-        'let test: String -> Number = f given [ "step 1", "step 2" ]';
-      const { parser } = parseInput(testCase);
-      expect(parser.errors).toHaveLength(0);
-    });
+        'create SignUp as (user: types.EmailAddress, pass: types.Password) -> string;'
+      const { parser } = parseInput(testCase)
+      expect(parser.errors).toHaveLength(0)
+    })
 
-    it("should parse chained given", () => {
-      const testCase = "let test: A -> D = f given g given h";
-      const { parser } = parseInput(testCase);
-      expect(parser.errors).toHaveLength(0);
-    });
-  });
-});
+    it('should parse basic object string', () => {
+      const testCase = 'create MyObject as string;'
+      const { parser } = parseInput(testCase)
+      expect(parser.errors).toHaveLength(0)
+    })
+
+    it('should parse basic object number', () => {
+      const testCase = 'create MyObject as number;'
+      const { parser } = parseInput(testCase)
+      expect(parser.errors).toHaveLength(0)
+    })
+
+    it('should parse basic object bool', () => {
+      const testCase = 'create MyObject as bool;'
+      const { parser } = parseInput(testCase)
+      expect(parser.errors).toHaveLength(0)
+    })
+
+    it('should parse basic object unit', () => {
+      const testCase = 'create MyObject as unit;'
+      const { parser } = parseInput(testCase)
+      expect(parser.errors).toHaveLength(0)
+    })
+
+    it('should parse basic objects in product fields', () => {
+      const testCase = 'create Config as (name: string, count: number, active: bool);'
+      const { parser } = parseInput(testCase)
+      expect(parser.errors).toHaveLength(0)
+    })
+
+    it('should not allow overriding basic object string', () => {
+      const testCase = 'create string as Number;'
+      const { parser } = parseInput(testCase)
+      expect(parser.errors).not.toHaveLength(0)
+    })
+
+    it('should not allow overriding basic object number', () => {
+      const testCase = 'create number as Number;'
+      const { parser } = parseInput(testCase)
+      expect(parser.errors).not.toHaveLength(0)
+    })
+
+    it('should not allow overriding basic object bool', () => {
+      const testCase = 'create bool as Number;'
+      const { parser } = parseInput(testCase)
+      expect(parser.errors).not.toHaveLength(0)
+    })
+
+    it('should not allow overriding basic object unit', () => {
+      const testCase = 'create unit as Number;'
+      const { parser } = parseInput(testCase)
+      expect(parser.errors).not.toHaveLength(0)
+    })
+  })
+
+  describe('import declaration', () => {
+    it('should parse named import', () => {
+      const testCase = 'import EmailAddress from "types.spex";'
+      const { parser } = parseInput(testCase)
+      expect(parser.errors).toHaveLength(0)
+    })
+
+    it('should parse named import with alias', () => {
+      const testCase = 'import EmailAddress from "types.spex" as Username;'
+      const { parser } = parseInput(testCase)
+      expect(parser.errors).toHaveLength(0)
+    })
+
+    it('should parse module import', () => {
+      const testCase = 'import "types.spex" as types;'
+      const { parser } = parseInput(testCase)
+      expect(parser.errors).toHaveLength(0)
+    })
+  })
+
+  describe('export declaration', () => {
+    it('should parse export declaration', () => {
+      const testCase = 'export EmailAddress;'
+      const { parser } = parseInput(testCase)
+      expect(parser.errors).toHaveLength(0)
+    })
+  })
+
+  describe('generate declaration', () => {
+    it('should parse generate declaration', () => {
+      const testCase = 'generate Main;'
+      const { parser } = parseInput(testCase)
+      expect(parser.errors).toHaveLength(0)
+    })
+  })
+
+  describe('multiple declarations', () => {
+    it('should parse multiple declarations', () => {
+      const testCase = `
+        create Todo as (id: string, title: string, completed: bool);
+        create EmailAddress as from string select { are email addresses };
+        export EmailAddress;
+        generate Main;
+      `
+      const { parser } = parseInput(testCase)
+      expect(parser.errors).toHaveLength(0)
+    })
+  })
+})
