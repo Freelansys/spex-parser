@@ -10,8 +10,6 @@ import {
   ExportTok,
   ArrowTok,
   SelectBlock,
-  LCurly,
-  RCurly,
   LBracket,
   RBracket,
   LParen,
@@ -20,12 +18,8 @@ import {
   Comma,
   Semicolon,
   Dot,
-  Equals,
   Identifier,
-  StringLiteral,
-  Instruction,
-  NumberLiteral,
-  BoolLiteral,
+  PathLiteral,
 } from './lexer.js'
 
 export class SpexParser extends CstParser {
@@ -139,7 +133,7 @@ export class SpexParser extends CstParser {
   private namedImport = this.RULE('namedImport', () => {
     this.CONSUME(Identifier)
     this.CONSUME(FromTok)
-    this.CONSUME(Instruction)
+    this.CONSUME(PathLiteral)
     this.OPTION(() => {
       this.CONSUME(AsTok)
       this.CONSUME2(Identifier)
@@ -147,7 +141,7 @@ export class SpexParser extends CstParser {
   })
 
   private moduleImport = this.RULE('moduleImport', () => {
-    this.CONSUME(Instruction)
+    this.CONSUME(PathLiteral)
     this.CONSUME(AsTok)
     this.CONSUME(Identifier)
   })

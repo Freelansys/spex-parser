@@ -48,9 +48,6 @@ export const Colon = createToken({ name: 'Colon', pattern: /:/ })
 export const Comma = createToken({ name: 'Comma', pattern: /,/ })
 export const Semicolon = createToken({ name: 'Semicolon', pattern: /;/ })
 export const Dot = createToken({ name: 'Dot', pattern: /\./ })
-export const LAngle = createToken({ name: 'LAngle', pattern: /</ })
-export const RAngle = createToken({ name: 'RAngle', pattern: />/ })
-export const Equals = createToken({ name: 'Equals', pattern: /=/ })
 
 // Brace text block (for SELECT { ... })
 export const SelectBlock = createToken({
@@ -59,21 +56,9 @@ export const SelectBlock = createToken({
 })
 
 // Literals
-export const StringLiteral = createToken({
-  name: 'StringLiteral',
-  pattern: /'([^'\\]|\\.)*'/,
-})
-export const Instruction = createToken({
-  name: 'Instruction',
+export const PathLiteral = createToken({
+  name: 'PathLiteral',
   pattern: /"([^"\\]|\\.)*"/,
-})
-export const NumberLiteral = createToken({
-  name: 'NumberLiteral',
-  pattern: /-?((\.[0-9]+)|([0-9]+(\.[0-9]*)?))([eE][+-]?[0-9]+)?/,
-})
-export const BoolLiteral = createToken({
-  name: 'BoolLiteral',
-  pattern: /\b(true|false)\b/i,
 })
 
 // Identifiers
@@ -105,14 +90,7 @@ export const allTokens = [
   Comma,
   Semicolon,
   Dot,
-  LAngle,
-  RAngle,
-  Equals,
-
-  StringLiteral,
-  Instruction,
-  NumberLiteral,
-  BoolLiteral,
+  PathLiteral,
 
   Identifier,
 ]

@@ -118,7 +118,7 @@ export class SpexParserVisitor extends BaseSpexVisitor implements ICstVisitor<an
 
   namedImport(ctx: any): ImportDeclaration {
     const name = ctx.Identifier[0].image
-    const source = ctx.Instruction[0].image.slice(1, -1)
+    const source = ctx.PathLiteral[0].image.slice(1, -1)
     const alias = ctx.Identifier[1] ? ctx.Identifier[1].image : null
     return {
       kind: 'ImportDeclaration',
@@ -129,7 +129,7 @@ export class SpexParserVisitor extends BaseSpexVisitor implements ICstVisitor<an
   }
 
   moduleImport(ctx: any): ImportDeclaration {
-    const source = ctx.Instruction[0].image.slice(1, -1)
+    const source = ctx.PathLiteral[0].image.slice(1, -1)
     const alias = ctx.Identifier[0].image
     return {
       kind: 'ImportDeclaration',
