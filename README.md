@@ -80,6 +80,14 @@ unit
 
 `unit` is a special object that represent an empty type. It is useful in defining functions that take no input or do not return anything.
 
+## Arrays
+
+To represent an array:
+
+```spex
+string[]
+```
+
 ## Products
 
 Product objects are created by combining other objects:
