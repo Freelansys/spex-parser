@@ -12,5 +12,3 @@ select {
   dependencies: Node.js standard library,
   storage: JSON file
 };
-
-export TypeScriptCliEnv;

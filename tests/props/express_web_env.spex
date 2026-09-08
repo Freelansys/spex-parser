@@ -12,5 +12,3 @@ select {
   dependencies: express,
   database: PostgreSQL
 };
-
-export ExpressWebEnv;

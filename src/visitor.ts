@@ -4,7 +4,6 @@ import type {
   Declaration,
   ObjectDeclaration,
   ImportDeclaration,
-  ExportDeclaration,
   GenerateDeclaration,
   PackageDeclaration,
   RealizeDeclaration,
@@ -83,9 +82,6 @@ export class SpexParserVisitor extends BaseSpexVisitor implements ICstVisitor<an
     }
     if (ctx.importDeclaration) {
       return this.visit(ctx.importDeclaration)
-    }
-    if (ctx.exportDeclaration) {
-      return this.visit(ctx.exportDeclaration)
     }
     if (ctx.includeDeclaration) {
       return this.visit(ctx.includeDeclaration)
@@ -279,13 +275,6 @@ export class SpexParserVisitor extends BaseSpexVisitor implements ICstVisitor<an
       name: null,
       source,
       alias,
-    }
-  }
-
-  exportDeclaration(ctx: any): ExportDeclaration {
-    return {
-      kind: 'ExportDeclaration',
-      name: ctx.Identifier[0].image,
     }
   }
 

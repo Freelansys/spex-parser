@@ -12,5 +12,3 @@ select {
   dependencies: flask,
   database: SQLite
 };
-
-export FlaskWebEnv;

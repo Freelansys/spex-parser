@@ -3,7 +3,6 @@ import { parseToAst, parseConstraint } from '../src/visitor.js'
 import type {
   ObjectDeclaration,
   ImportDeclaration,
-  ExportDeclaration,
   GenerateDeclaration,
   PackageDeclaration,
   RealizeDeclaration,
@@ -556,18 +555,6 @@ describe('SpexParserVisitor', () => {
       const ast = parseToAst(testCase)
       const decl = ast.declarations[0] as ImportDeclaration
       expect(decl.source).toBe('dir\\types.spex')
-    })
-  })
-
-  describe('export declaration', () => {
-    it('should convert export declaration to AST', () => {
-      const testCase = 'export EmailAddress;'
-      const ast = parseToAst(testCase)
-      const decl = ast.declarations[0] as ExportDeclaration
-      expect(decl).toEqual({
-        kind: 'ExportDeclaration',
-        name: 'EmailAddress',
-      })
     })
   })
 

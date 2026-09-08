@@ -6,7 +6,6 @@ export type SpexFile = {
 export type Declaration =
   | ObjectDeclaration
   | ImportDeclaration
-  | ExportDeclaration
   | GenerateDeclaration
   | PackageDeclaration
   | RealizeDeclaration
@@ -33,11 +32,6 @@ export type ImportDeclaration = {
   name: string | null
   source: string
   alias: string | null
-}
-
-export type ExportDeclaration = {
-  kind: 'ExportDeclaration'
-  name: string
 }
 
 export type GenerateDeclaration = {

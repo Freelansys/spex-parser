@@ -12,5 +12,3 @@ select {
   dependencies: standard library,
   storage: JSON file
 };
-
-export PythonCliEnv;

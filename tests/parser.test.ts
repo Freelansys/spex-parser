@@ -227,14 +227,6 @@ describe('SpexParser', () => {
     })
   })
 
-  describe('export declaration', () => {
-    it('should parse export declaration', () => {
-      const testCase = 'export EmailAddress;'
-      const { parser } = parseInput(testCase)
-      expect(parser.errors).toHaveLength(0)
-    })
-  })
-
   describe('generate declaration', () => {
     it('should parse generate declaration', () => {
       const testCase = 'generate Main;'
@@ -641,7 +633,6 @@ describe('SpexParser', () => {
       const testCase = `
         create Todo as (id: string, title: string, completed: bool);
         create EmailAddress as from string select { are email addresses };
-        export EmailAddress;
         generate Main;
       `
       const { parser } = parseInput(testCase)

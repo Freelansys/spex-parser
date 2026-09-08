@@ -8,7 +8,6 @@ export type {
   Declaration,
   ObjectDeclaration,
   ImportDeclaration,
-  ExportDeclaration,
   EnumObject,
   GenerateDeclaration,
   PackageDeclaration,

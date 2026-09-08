@@ -106,20 +106,3 @@ select {
   language: TypeScript,
   runtime: Node.js 20
 };
-
-/* Exports for the concrete realizations. */
-export TodoId;
-export TodoTitle;
-export Todo;
-export HttpRequest;
-export HttpResponse;
-export AddTodo;
-export ListTodos;
-export CompleteTodo;
-export TodoApp;
-export TodoCli;
-export TodoWeb;
-export Cli;
-export Web;
-export Python;
-export TypeScript;

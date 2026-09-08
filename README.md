@@ -498,9 +498,9 @@ SELECT {
 
 ---
 
-# Importing and Exporting
+# Importing
 
-If there is a need to reuse some object in other files, we have to export the object and then import it where it is needed.
+Any defined object can be reused in another file by importing it where it is needed.
 
 Suppose we have a file `types.spex` with the following content:
 
@@ -520,9 +520,6 @@ SELECT {
   - contain at least one number character
   - contain at least one special character
 };
-
-EXPORT EmailAddress;
-EXPORT Password;
 ```
 
 Then, we can import `EmailAddress` as itself in some other file:

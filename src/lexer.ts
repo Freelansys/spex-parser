@@ -43,10 +43,6 @@ export const ImportTok = createToken({
   name: 'ImportTok',
   pattern: /import\b/i,
 })
-export const ExportTok = createToken({
-  name: 'ExportTok',
-  pattern: /export\b/i,
-})
 export const PackageTok = createToken({
   name: 'PackageTok',
   pattern: /package\b/i,
@@ -248,7 +244,6 @@ export const allTokens = [
   SelectTok,
   GenerateTok,
   ImportTok,
-  ExportTok,
   PackageTok,
   ExecutableTok,
   ModuleTok,

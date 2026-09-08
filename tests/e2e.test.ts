@@ -8,11 +8,11 @@ const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
 
 const fixtures: [string, number][] = [
-  ['todo.spex', 32],
-  ['python_cli_env.spex', 4],
-  ['typescript_cli_env.spex', 4],
-  ['flask_web_env.spex', 4],
-  ['express_web_env.spex', 4],
+  ['todo.spex', 17],
+  ['python_cli_env.spex', 3],
+  ['typescript_cli_env.spex', 3],
+  ['flask_web_env.spex', 3],
+  ['express_web_env.spex', 3],
   ['python_todo_cli.spex', 16],
   ['typescript_todo_cli.spex', 16],
   ['flask_todo_web.spex', 22],
