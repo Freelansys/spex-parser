@@ -69,18 +69,17 @@ Objects are analogous to types in a programming language. Objects can be transla
 
 ## Basic Objects
 
-Basic objects are provided by Spex natively. These objects represent the common basic types in a programming language:
+Spex provides three base objects natively. Every object is a subobject of exactly one of these bases:
 
 ```spex
-string
-number
-bool
-unit
+artifact
 concept
 environment
 ```
 
-`unit` is a special object that represent an empty type. It is useful in defining functions that take no input or do not return anything.
+`artifact` is the base object for concrete, realizable things. `string`, `number`, `bool`, products, exponentials, arrays, literals, and patterns are all subobjects of `artifact`.
+
+`unit` is a special subobject of `artifact` that represents an empty type. It is useful in defining functions that take no input or do not return anything.
 
 `concept` and `environment` are abstract base objects. A `concept` represents an abstract specification of something that needs to be realized, while an `environment` describes the context in which concepts are realized. They are covered in depth in [Concepts, Environments, and Realization](#concepts-environments-and-realization).
 
@@ -381,6 +380,8 @@ realize HttpApi as FlaskHttpApi in Python;
 ```
 
 Realization is recursive: an abstract concept can be realized into objects that are themselves still abstract and require further realization. Code generation is possible when the relevant abstract concepts have reached concrete realizations.
+
+The concrete representation produced by a realization is an artifact: a subobject of the `artifact` base object that can be generated and validated against provable constraints.
 
 ## Relationship Between the Three
 

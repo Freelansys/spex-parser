@@ -445,6 +445,20 @@ describe('SpexParserVisitor', () => {
       })
     })
 
+    it('should convert basic object artifact to AST', () => {
+      const testCase = 'create MyObject as artifact;'
+      const ast = parseToAst(testCase)
+      const decl = ast.declarations[0] as ObjectDeclaration
+      expect(decl).toEqual({
+        kind: 'ObjectDeclaration',
+        name: 'MyObject',
+        object: {
+          kind: 'NamedObject',
+          name: 'artifact',
+        },
+      })
+    })
+
     it('should convert array type declaration to AST', () => {
       const testCase = 'create MyArray as string[];'
       const ast = parseToAst(testCase)

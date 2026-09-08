@@ -118,10 +118,10 @@ describe('SpexLexer', () => {
 
     it('should handle keywords with word boundary', () => {
       const result = SpexLexer.tokenize(
-        'createfoo foocreate asfoo fooas fooselect selectfoo foofrom fromfoo generatefoo foogenerate importfoo fooimport packagefoo fopackage executablefoo foexecutable modulefoo fomodule conceptfoo fooconcept environmentfoo fooenvironment realizefoo foorealize info fooin'
+        'createfoo foocreate asfoo fooas fooselect selectfoo foofrom fromfoo generatefoo foogenerate importfoo fooimport packagefoo fopackage executablefoo foexecutable modulefoo fomodule artifactfoo fooartifact conceptfoo fooconcept environmentfoo fooenvironment realizefoo foorealize info fooin'
       )
       expect(result.errors).toHaveLength(0)
-      expect(result.tokens.map((t) => t.tokenType.name)).toEqual(Array(26).fill('Identifier'))
+      expect(result.tokens.map((t) => t.tokenType.name)).toEqual(Array(28).fill('Identifier'))
     })
 
     it('should tokenize the concept and environment base types', () => {
@@ -131,6 +131,12 @@ describe('SpexLexer', () => {
         'ConceptTok',
         'EnvironmentTok',
       ])
+    })
+
+    it('should tokenize the artifact base type', () => {
+      const result = SpexLexer.tokenize('artifact')
+      expect(result.errors).toHaveLength(0)
+      expect(result.tokens.map((t) => t.tokenType.name)).toEqual(['ArtifactTok'])
     })
 
     it('should tokenize the text between braces', () => {

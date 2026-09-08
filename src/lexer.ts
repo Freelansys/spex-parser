@@ -201,6 +201,20 @@ export const FalseTok = createToken({
   pattern: /false\b/i,
 })
 
+// Base objects (native types)
+export const ArtifactTok = createToken({
+  name: 'ArtifactTok',
+  pattern: /artifact\b/i,
+})
+export const ConceptTok = createToken({
+  name: 'ConceptTok',
+  pattern: /concept\b/i,
+})
+export const EnvironmentTok = createToken({
+  name: 'EnvironmentTok',
+  pattern: /environment\b/i,
+})
+
 // Basic objects (native types)
 export const StringTok = createToken({
   name: 'StringTok',
@@ -217,14 +231,6 @@ export const BoolTok = createToken({
 export const UnitTok = createToken({
   name: 'UnitTok',
   pattern: /unit\b/i,
-})
-export const ConceptTok = createToken({
-  name: 'ConceptTok',
-  pattern: /concept\b/i,
-})
-export const EnvironmentTok = createToken({
-  name: 'EnvironmentTok',
-  pattern: /environment\b/i,
 })
 
 // Identifiers
@@ -276,12 +282,13 @@ export const allTokens = [
   PatternLiteral,
   CodeBlock,
 
+  ArtifactTok,
+  ConceptTok,
+  EnvironmentTok,
   StringTok,
   NumberTok,
   BoolTok,
   UnitTok,
-  ConceptTok,
-  EnvironmentTok,
 
   Identifier,
 ]
