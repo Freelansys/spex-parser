@@ -10,7 +10,6 @@ import {
   PackageTok,
   ExecutableTok,
   ModuleTok,
-  EnumTok,
   UnionTok,
   IntersectTok,
   ExceptTok,
@@ -112,17 +111,6 @@ export class SpexParser extends CstParser {
     })
   })
 
-  private enumObject = this.RULE('enumObject', () => {
-    this.CONSUME(EnumTok)
-    this.CONSUME(LParen)
-    this.CONSUME(StringLiteral)
-    this.MANY(() => {
-      this.CONSUME(Comma)
-      this.CONSUME2(StringLiteral)
-    })
-    this.CONSUME(RParen)
-  })
-
   private literalObject = this.RULE('literalObject', () => {
     this.OR([
       { ALT: () => this.CONSUME(StringLiteral) },
@@ -144,9 +132,6 @@ export class SpexParser extends CstParser {
     this.OR([
       {
         ALT: () => this.SUBRULE(this.literalObject),
-      },
-      {
-        ALT: () => this.SUBRULE(this.enumObject),
       },
       {
         ALT: () => this.SUBRULE(this.patternObject),

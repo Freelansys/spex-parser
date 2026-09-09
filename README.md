@@ -108,7 +108,6 @@ artifact
 ├── product
 ├── exponential
 ├── array
-├── enum
 ├── pattern
 ├── literal
 └── ...
@@ -460,7 +459,7 @@ A literal denotes a single value, and therefore represents the set containing ex
 true     -- the boolean true
 ```
 
-Literals can participate in subobjecting or serve as alternatives in a coproduct:
+Literals can participate in subobjecting or serve as alternatives in a coproduct. A named set of allowed values is simply a coproduct of literals:
 
 ```spex
 create UserName as
@@ -469,17 +468,6 @@ string EXCEPT "root";
 create Handedness as
 "left" | "right";
 ```
-
-## Enums
-
-An enum is an artifact that declares a named set of allowed string values:
-
-```spex
-create Color as
-enum ('red', 'green', 'blue');
-```
-
-An enum constrains a value to one of the listed strings.
 
 ## Patterns
 

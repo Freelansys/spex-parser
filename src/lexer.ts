@@ -55,10 +55,6 @@ export const ModuleTok = createToken({
   name: 'ModuleTok',
   pattern: /module\b/i,
 })
-export const EnumTok = createToken({
-  name: 'EnumTok',
-  pattern: /enum\b/i,
-})
 export const UnionTok = createToken({
   name: 'UnionTok',
   pattern: /union\b/i,
@@ -249,7 +245,6 @@ export const allTokens = [
   PackageTok,
   ExecutableTok,
   ModuleTok,
-  EnumTok,
   UnionTok,
   IntersectTok,
   ExceptTok,

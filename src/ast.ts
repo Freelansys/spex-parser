@@ -58,7 +58,6 @@ export type ObjectExpression =
   | ExponentialObject
   | SubObject
   | ArrayObject
-  | EnumObject
   | LiteralObject
   | SetObject
   | CoproductObject
@@ -131,11 +130,6 @@ export type SubObject = {
 export type ArrayObject = {
   kind: 'ArrayObject'
   base: ObjectExpression
-}
-
-export type EnumObject = {
-  kind: 'EnumObject'
-  values: string[]
 }
 
 export type LiteralObject = StringLiteralObject | NumberLiteralObject | BoolLiteralObject

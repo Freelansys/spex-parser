@@ -74,10 +74,6 @@ describe('constantOf', () => {
     expect(constantOf(firstObject('create K as from string select { are positive };'))).toBeNull()
   })
 
-  it('should reject enums', () => {
-    expect(constantOf(firstObject("create K as enum ('a', 'b');"))).toBeNull()
-  })
-
   it('should reject arrays', () => {
     expect(constantOf(firstObject('create K as string[];'))).toBeNull()
   })

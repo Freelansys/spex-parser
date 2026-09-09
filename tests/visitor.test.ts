@@ -7,7 +7,6 @@ import type {
   PackageDeclaration,
   RealizeDeclaration,
   IncludeDeclaration,
-  EnumObject,
   Constraint,
 } from '../src/ast.js'
 
@@ -589,76 +588,6 @@ describe('SpexParserVisitor', () => {
       expect(decl).toEqual({
         kind: 'GenerateDeclaration',
         name: 'Main',
-      })
-    })
-  })
-
-  describe('enum object', () => {
-    it('should convert enum object declaration to AST', () => {
-      const testCase = "create myEnum as enum ('v1', 'v2');"
-      const ast = parseToAst(testCase)
-      const decl = ast.declarations[0] as ObjectDeclaration
-      expect(decl).toEqual({
-        kind: 'ObjectDeclaration',
-        name: 'myEnum',
-        object: {
-          kind: 'EnumObject',
-          values: ['v1', 'v2'],
-        },
-      })
-    })
-
-    it('should convert single-value enum object to AST', () => {
-      const testCase = "create Status as enum ('ACTIVE');"
-      const ast = parseToAst(testCase)
-      const decl = ast.declarations[0] as ObjectDeclaration
-      expect(decl).toEqual({
-        kind: 'ObjectDeclaration',
-        name: 'Status',
-        object: {
-          kind: 'EnumObject',
-          values: ['ACTIVE'],
-        },
-      })
-    })
-
-    it('should convert enum object with mixed quote values to AST', () => {
-      const testCase = "create myEnum as enum (\"v1\", 'v2');"
-      const ast = parseToAst(testCase)
-      const decl = ast.declarations[0] as ObjectDeclaration
-      expect(decl).toEqual({
-        kind: 'ObjectDeclaration',
-        name: 'myEnum',
-        object: {
-          kind: 'EnumObject',
-          values: ['v1', 'v2'],
-        },
-      })
-    })
-
-    it('should convert enum object with escaped values to AST', () => {
-      const testCase = "create myEnum as enum ('it\\'s', \"a \\\"b\\\"\", 'a\\\\b');"
-      const ast = parseToAst(testCase)
-      const decl = ast.declarations[0] as ObjectDeclaration
-      expect(decl).toEqual({
-        kind: 'ObjectDeclaration',
-        name: 'myEnum',
-        object: {
-          kind: 'EnumObject',
-          values: ["it's", 'a "b"', 'a\\b'],
-        },
-      })
-    })
-
-    it('should convert enum object inside a product object to AST', () => {
-      const testCase = "create Config as (kind: enum ('a', 'b'));"
-      const ast = parseToAst(testCase)
-      const decl = ast.declarations[0] as ObjectDeclaration
-      expect(decl.object).toEqual({
-        kind: 'ProductObject',
-        fields: {
-          kind: { kind: 'EnumObject', values: ['a', 'b'] },
-        },
       })
     })
   })

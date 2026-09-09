@@ -5,7 +5,7 @@ describe('SpexLexer', () => {
   describe('tokenization', () => {
     it('should tokenize keywords', () => {
       const result = SpexLexer.tokenize(
-        'create as from select generate import package executable module enum realize in'
+        'create as from select generate import package executable module realize in'
       )
       expect(result.errors).toHaveLength(0)
       expect(result.tokens.map((t) => t.tokenType.name)).toEqual([
@@ -18,7 +18,6 @@ describe('SpexLexer', () => {
         'PackageTok',
         'ExecutableTok',
         'ModuleTok',
-        'EnumTok',
         'RealizeTok',
         'InTok',
       ])
@@ -26,7 +25,7 @@ describe('SpexLexer', () => {
 
     it('should tokenize keywords case-insensitively', () => {
       const result = SpexLexer.tokenize(
-        'CREATE AS FROM SELECT GENERATE IMPORT PACKAGE EXECUTABLE MODULE ENUM UNION INTERSECT EXCEPT REALIZE IN'
+        'CREATE AS FROM SELECT GENERATE IMPORT PACKAGE EXECUTABLE MODULE UNION INTERSECT EXCEPT REALIZE IN'
       )
       expect(result.errors).toHaveLength(0)
       expect(result.tokens.map((t) => t.tokenType.name)).toEqual([
@@ -39,29 +38,11 @@ describe('SpexLexer', () => {
         'PackageTok',
         'ExecutableTok',
         'ModuleTok',
-        'EnumTok',
         'UnionTok',
         'IntersectTok',
         'ExceptTok',
         'RealizeTok',
         'InTok',
-      ])
-    })
-
-    it('should tokenize enum object declarations', () => {
-      const result = SpexLexer.tokenize("create myEnum as enum ('v1', 'v2');")
-      expect(result.errors).toHaveLength(0)
-      expect(result.tokens.map((t) => t.tokenType.name)).toEqual([
-        'CreateTok',
-        'Identifier',
-        'AsTok',
-        'EnumTok',
-        'LParen',
-        'StringLiteral',
-        'Comma',
-        'StringLiteral',
-        'RParen',
-        'Semicolon',
       ])
     })
 

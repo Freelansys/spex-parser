@@ -8,7 +8,6 @@ import type {
   PackageDeclaration,
   RealizeDeclaration,
   IncludeDeclaration,
-  EnumObject,
   LiteralObject,
   SetObject,
   CoproductObject,
@@ -116,13 +115,6 @@ export class SpexParserVisitor extends BaseSpexVisitor implements ICstVisitor<an
     return this.visit(ctx.generateDeclaration)
   }
 
-  enumObject(ctx: any): EnumObject {
-    return {
-      kind: 'EnumObject',
-      values: ctx.StringLiteral.map((s: any) => stringLiteralValue(s.image)),
-    }
-  }
-
   literalObject(ctx: any): LiteralObject {
     if (ctx.StringLiteral) {
       return {
@@ -192,8 +184,6 @@ export class SpexParserVisitor extends BaseSpexVisitor implements ICstVisitor<an
       expr = this.visit(ctx.parenthesizedObject)
     } else if (ctx.productObject) {
       expr = this.visit(ctx.productObject)
-    } else if (ctx.enumObject) {
-      expr = this.visit(ctx.enumObject)
     } else if (ctx.patternObject) {
       expr = this.visit(ctx.patternObject)
     } else if (ctx.literalObject) {
