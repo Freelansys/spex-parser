@@ -16,14 +16,14 @@ The idea behind chat interfaces in AI coding tools is that _everyone_ should be 
 
 Spex acknowledges that in serious software projects it is neither wise nor feasible to replace programmers with machines. Instead, Spex integrates with the mental model and ecosystem of professional programmers, enabling them to be significantly more efficient. For this reason, Spex is probably not suited to someone that is not familiar with programming. This is a conscious decision made to cater to the needs of professional programmers and not the general public.
 
-For this reason, Spex syntax is intentionally close to common languages such as TypeScript and SQL. Instead of manually implementing software, developers describe _spaces of valid implementations_ using familiar programming abstractions such as:
+For this reason, Spex syntax is intentionally close to common languages such as TypeScript and SQL. Instead of manually implementing software, developers describe what they want using familiar programming abstractions:
 
 - objects
-- functions
-- dependencies
-- constraints
+- patterns
+- realizations
+- environments
 
-The Spex runtime synthesizes concrete implementations based on these specifications.
+The central operation in Spex is **realization**: a concept is decomposed into other concepts and/or artifacts, gradually becoming more concrete. The Spex runtime synthesizes concrete implementations by following these realization paths to their artifact endpoints.
 
 ---
 
@@ -31,24 +31,50 @@ The Spex runtime synthesizes concrete implementations based on these specificati
 
 In Spex:
 
-- a type represents a space of possible implementations
-- constraints refine that space
-- reusable abstractions are represented as subtypes
+- a **concept** describes something that needs to be realized
+- **realization** decomposes a concept into other concepts and/or artifacts
+- **subobjecting** restricts the members of an artifact universe
+- an **environment** constrains which realization paths are available
+
+The fundamental model is:
+
+```text
+Concept ── realization in Environment ──> Concept / Artifact
+```
 
 For example:
 
 ```spex
-CREATE SecureEndpoint AS
-FROM HttpRequest -> HttpResponse
-SELECT {
-  - the user is authenticated and authorised.
-  - The call is rate limited.
+create WebApplication as
+from concept
+select {
+  serve HTTP requests and respond with JSON
 };
 ```
 
-`SecureEndpoint` now represents the set of all endpoint implementations satisfying those constraints.
+`WebApplication` is a concept. It can be realized as a product of more specific concepts:
 
-Developers can build on top of these abstractions instead of repeatedly specifying common architectural concerns.
+```text
+WebApplication
+    ── realized-by ──>
+        (
+            database: SQLSchemaDescription,
+            backend: ExpressAppDescription,
+            frontend: ReactUIDescription
+        )
+```
+
+Each of those can be realized further until concrete artifacts are reached. Realization is recursive:
+
+```text
+Concept
+   │
+   └── realization ──> Concept
+                          │
+                          └── realization ──> Artifact
+```
+
+Developers build on these abstractions instead of repeatedly specifying common architectural concerns.
 
 ---
 
@@ -65,27 +91,47 @@ Spex is designed to:
 
 # Objects
 
-Objects are analogous to types in a programming language. Objects can be translated to classes, structs, functions, etc.
+Spex describes software using three fundamental kinds of object: **artifacts**, **concepts**, and **environments**. These are the base universes of the model. Every named or expression-level object belongs to exactly one of them.
 
-## Basic Objects
+## The Artifact Universe
 
-Spex provides three base objects natively. Every object is a subobject of exactly one of these bases:
+`artifact` is the universe of concrete, producible things. Artifacts are not synonymous with source code or programs. An artifact can be a string, a number, a file, a structured object, or any other concrete representation that can be produced, manipulated, or used as a realization.
 
-```spex
+The artifact universe contains many sub-kinds:
+
+```text
 artifact
-concept
-environment
+├── string
+├── number
+├── bool
+├── unit
+├── product
+├── exponential
+├── array
+├── enum
+├── pattern
+├── literal
+└── ...
 ```
 
-`artifact` is the base object for concrete, realizable things. `string`, `number`, `bool`, products, exponentials, arrays, literals, and patterns are all subobjects of `artifact`.
+### Basic Objects
 
-`unit` is a special subobject of `artifact` that represents an empty type. It is useful in defining functions that take no input or do not return anything.
+Spex provides several built-in artifact objects:
 
-`concept` and `environment` are abstract base objects. A `concept` represents an abstract specification of something that needs to be realized, while an `environment` describes the context in which concepts are realized. They are covered in depth in [Concepts, Environments, and Realization](#concepts-environments-and-realization).
+```spex
+string
+number
+bool
+unit
+```
+
+`string`, `number`, and `bool` represent the familiar value universes. `unit` is a special artifact that represents the empty product — a space with exactly one member. It is useful in defining functions that take no input or do not return anything.
+
+`concept` and `environment` are separate base universes, not sub-kinds of artifact. They are covered in [Concepts, Environments, and Realization](#concepts-environments-and-realization).
 
 ## Arrays
 
-To represent an array:
+An array is an artifact whose members are sequences of some base artifact:
 
 ```spex
 string[]
@@ -93,7 +139,7 @@ string[]
 
 ## Products
 
-Product objects are created by combining other objects:
+A product is an artifact formed by combining other artifacts into a structured record:
 
 ```spex
 (
@@ -119,20 +165,20 @@ Consequently, `()` and `unit` are the same object.
 
 ## Coproducts
 
-Coproduct objects represent a choice between alternatives. Where a product means "both", a coproduct means "either". A value of a coproduct holds exactly one of the alternatives and records which one. Coproducts are also called sum types or tagged unions:
+A coproduct is an artifact that represents a choice between alternatives. Where a product means "both", a coproduct means "either". A value of a coproduct holds exactly one of the alternatives and records which one. Coproducts are also called sum types or tagged unions:
 
 ```spex
-CREATE Shape AS
+create Shape as
 Point | Circle;
 
-CREATE Command AS
+create Command as
 AddTodo | ListTodos | CompleteTodo;
 ```
 
 Coproducts combine with any other object form:
 
 ```spex
-CREATE Result AS
+create Result as
 string | (error: string) | unit;
 ```
 
@@ -141,26 +187,26 @@ Because the alternatives are disjoint, a coproduct needs no common universe: `A 
 Operator precedence, from loosest to tightest, is: set operations, then `|`, then `->`:
 
 ```spex
-CREATE X AS
+create X as
 A -> B | C;   -- (A -> B) | C
 
-CREATE Y AS
+create Y as
 A UNION B | C;   -- A UNION (B | C)
 ```
 
 Use parentheses to group any expression and override the default precedence. A `(` opens a group unless it is followed by a field name and a colon, in which case it opens a product:
 
 ```spex
-CREATE X AS
+create X as
 A -> (B | C);
 
-CREATE Y AS
+create Y as
 (A UNION B) EXCEPT C;
 ```
 
 ## Exponentials
 
-Spex supports function types which are referred to as exponential objects. An exponential has a base (the result type) and an exponent (the parameter type), both of which must be objects:
+An exponential is an artifact that represents a function space. It has a base (the result type) and an exponent (the parameter type), both of which must be artifacts:
 
 ```spex
 string -> number
@@ -169,157 +215,104 @@ string -> unit
 unit -> string
 ```
 
-`string -> unit` represents all functions that take a string as input and do not return anything. `unit -> string` on the other hand, is a function that takes nothing as input, but returns a string.
+`string -> unit` represents all functions that take a string as input and do not return anything. `unit -> string` is a function that takes nothing as input but returns a string.
 
 ## Subobjects
 
-Subobjects are analogous to subsets. Subobjects refine an object by selecting members that satisfy a constraint. Base objects can be constrained in three ways: natural language, structured, and code.
+Subobjecting selects a subset of the members of an existing universe while preserving their kind. For example:
 
-### Natural Language Constraints
+```text
+PositiveNumber ⊆ Number
+```
 
-Natural language constraints are written in braces:
+Every member of `PositiveNumber` is still a `Number`. No decomposition has occurred and no information-bearing structure has been replaced by parts. The universe has simply been restricted.
+
+This is fundamentally different from **realization**, which decomposes an object into other objects (see [Concepts, Environments, and Realization](#concepts-environments-and-realization)):
+
+```text
+SUBOBJECTING
+    restricts membership within a universe
+
+REALIZATION
+    decomposes an object into other objects
+```
+
+### The `from ... select ...` Syntax
+
+The universal mechanism for subobjecting is:
+
+```text
+from X select P
+```
+
+read as: "from the universe `X`, select the members described by pattern `P`". The pattern determines membership — it describes how to establish whether an object belongs to the subobject. Patterns come in three forms — natural language, structured, and code — described in [Pattern Kinds](#pattern-kinds) below.
+
+For example:
 
 ```spex
-FROM string
-SELECT {
+from number select {
+  are positive
+}
+```
+
+names the subobject of `number` containing exactly the positive numbers.
+
+What subobjecting means depends on the universe being restricted.
+
+### Subobjecting Artifacts
+
+Most subobjecting happens within the artifact universe. The pattern restricts which artifacts — strings, numbers, products, functions, and so on — belong to the subobject.
+
+#### Non-Exponential Artifacts
+
+For non-exponential artifacts such as `string`, `number`, `bool`, and products, a pattern behaves like a membership test on the members themselves:
+
+```spex
+from string select {
   are email addresses
 }
+```
 
-FROM string -> number
-SELECT {
+defines the subobject of `string` containing exactly the strings that are email addresses. Conceptually, the pattern is a classifier over the source universe:
+
+```text
+number
+   │
+   │ classifier
+   ▼
+{ n ∈ number | classifier(n) = true }
+```
+
+When a structured or code pattern is used, the subobject of a non-exponential artifact is realized as a classifier function over the source universe.
+
+#### Exponentials
+
+An exponential is a function space, so subobjecting an exponential restricts which functions belong to the subobject. Because a function is not inspected member-by-member the way a value is, the pattern describes the function's computational representation — what it computes and how:
+
+````spex
+from Number -> Bool select ```python
+    if x > 0:
+        return True
+    else:
+        return False
+```
+````
+
+describes the subobject of `Number -> Bool` whose members behave this way. Natural language works just as well:
+
+```spex
+from string -> number select {
   return the length of the given string
 }
 ```
 
-A natural language constraint describes the required property in prose. It carries no structure that can be checked mechanically, so it is **not provable** in the generated artifact: it is a statement of intent for whoever implements the subobject.
+describes the subobject of `string -> number` containing exactly the functions that return the length of their input.
 
-### Structured Constraints
+The grammar does not treat exponentials specially: `from A -> B select ...` and `from number select ...` are the same subobjecting operation. Deciding whether a pattern is a classifier over values or a description of function behavior is a compile-time semantic concern, not a grammar restriction. The compiler infers a pattern's signature where possible, checks it against the source object, and rejects ambiguous or incompatible patterns (see [Code Patterns](#code-patterns)).
 
-Structured constraints are fenced code blocks without a language identifier. They are written in **SKIT** (Structured Kernel Implementation Template), a minimal language of programming directives that is supported by every modern programming language — `if` expressions, loops, `try`/`catch`, and similar. Because SKIT is universal, a structured constraint can be satisfied by an implementation produced in any programming language:
+### Subobjecting Concepts
 
-````spex
-FROM artifact
-SELECT ```
-if x > 0 {
-  // gen: let $y be the square root of &x
-}
-```
-````
-
-Structured and code constraints may only be applied to **subobjects of `artifact`**, the base object for concrete, realizable things. Unlike natural language constraints, they are **(partially) provable**: during generation the produced artifact is checked to contain what the constraint requires, and the provable parts are validated automatically.
-
-**Generation directives** mark the positions in a structured or code constraint where unprovable code is generated. A generation directive is a comment starting with `gen:` followed by a natural-language description of what to generate. In the example above, the generated artifact must contain an `if` block that checks `x > 0`; the body of that block is a generation directive, so exactly what it computes is not provable from the constraint.
-
-### Code Constraints
-
-Code constraints are fenced code blocks with a language identifier. They are similar to structured constraints but apply to one specific language, so they may also use features that are specific to that language. The language identifier is recorded alongside the body in the AST:
-
-````spex
-FROM artifact
-SELECT ```python
-if x > 0:
-  # gen: let $y be the square root of &x
-  pass
-```
-````
-
-This declares the same constraint as the structured version above, but only a Python implementation can satisfy it. Like structured constraints, code constraints are (partially) provable during generation and may only be applied to subobjects of `artifact`.
-
-The body of a code constraint must be syntactically valid in the language it specifies. A constraint with `python` in the fence, for example, should be valid Python so that it can be checked against generated code.
-
-Subobjects are themselves objects so they could be subobjected as well. A good heuristic for writing constraints is to make the expression read as:
-
-> "from `object` select those that `{constraint}`".
-
-## Set Operations
-
-Objects that live in a common universe can be combined with the set operations `UNION`, `INTERSECT`, and `EXCEPT`:
-
-```spex
-CREATE EvenInt AS
-FROM int
-SELECT { are even };
-
-CREATE PositiveInt AS
-FROM int
-SELECT { are positive };
-
-CREATE EvenPositiveInt AS
-EvenInt INTERSECT PositiveInt;
-
-CREATE EvenOrPositive AS
-EvenInt UNION PositiveInt;
-
-CREATE EvenNotPositive AS
-EvenInt EXCEPT PositiveInt;
-```
-
-`UNION` keeps members that satisfy either side, `INTERSECT` keeps members that satisfy both sides, and `EXCEPT` removes the members of the right side from the left side.
-
-Set operations bind loosest of all object operators and chain left-to-right:
-
-```spex
-CREATE X AS
-A UNION B EXCEPT C;   -- (A UNION B) EXCEPT C
-```
-
-## Literals
-
-A literal object denotes a single value, and therefore represents the set containing exactly that value:
-
-```spex
-"root"   -- the string root
-42       -- the number 42
-true     -- the boolean true
-```
-
-Literals can refine other objects or serve as alternatives in a coproduct:
-
-```spex
-CREATE UserName AS
-string EXCEPT "root";
-
-CREATE Handedness AS
-"left" | "right";
-```
-
-## Enums
-
-An enum object declares a named set of allowed string values:
-
-```spex
-CREATE Color AS
-ENUM ('red', 'green', 'blue');
-```
-
-An enum constrains a value to one of the listed strings.
-
-## Patterns
-
-A pattern literal denotes the subobject of `string` containing exactly the strings that match it:
-
-```spex
-/\d+/
-/create\b/i
-/'([^'\\]|\\.)*'|"([^"\\]|\\.)*"/
-```
-
-The source is kept verbatim and flags such as `i` (case-insensitive) follow the closing slash. Because a pattern is a subobject of the string base object, it participates in set operations and coproducts like any other object:
-
-```spex
-CREATE Digits AS /\d+/;
-CREATE Word AS /\w+/;
-
-CREATE DigitOrWord AS Digits UNION Word;
-```
-
-# Concepts, Environments, and Realization
-
-Spex distinguishes between _what_ software should be and _where_ and _how_ it is realized. This separation is captured by three core ideas: concepts, environments, and realizations.
-
-## Concept
-
-A `concept` is a built-in base object that represents an abstract specification of something that needs to be realized. Concepts are ordinary Spex objects and can be subobjected just like any other object:
+A concept describes something that still needs realization. Subobjecting a concept produces a more specific concept — it restricts which implementations the concept stands for without decomposing it:
 
 ```spex
 create HttpApi as
@@ -335,13 +328,222 @@ select {
 };
 ```
 
-Because `EchoApi` is a subobject of `HttpApi`, it inherits everything `HttpApi` stands for and only adds constraints on top of it.
+Because `EchoApi` is a subobject of `HttpApi`, it inherits everything `HttpApi` stands for and only adds membership restrictions on top of it. Concepts are covered in depth in [Concepts, Environments, and Realization](#concepts-environments-and-realization).
+
+### Subobjecting Environments
+
+An environment describes the context in which realizations take place. Subobjecting an environment produces a more specific environment:
+
+```spex
+create Python as
+from environment
+select {
+  language: Python
+};
+
+create FastAPI as
+from Python
+select {
+  dependencies: fastapi, uvicorn
+};
+```
+
+`FastAPI` is a subobject of `Python`: every environment satisfying `FastAPI`'s pattern is also a Python environment.
+
+### Pattern Kinds
+
+A pattern can be written in three forms. All three can be used with any source universe, but they differ in how — and how precisely — they determine membership.
+
+#### Natural Language Patterns
+
+Natural language patterns are written in braces:
+
+```spex
+from string select {
+  are email addresses
+}
+```
+
+A natural language pattern describes the membership criterion in prose. It carries no structure that can be checked mechanically, so it is **not provable** in the generated artifact: it is a statement of intent to be honored when producing members of the subobject.
+
+#### Structured Patterns
+
+Structured patterns are fenced code blocks without a language identifier. They are written in **SKIT** (Structured Kernel Implementation Template), a minimal language of programming directives that is supported by every modern programming language — `if` expressions, loops, `try`/`catch`, and similar. Because SKIT is universal, a structured pattern can be satisfied by a realization produced in any programming language:
+
+````spex
+from number select ```
+if &number > 0 {
+  return true
+}
+```
+````
+
+Unlike natural language patterns, structured patterns are **(partially) provable**: during generation the produced artifact is checked against the pattern, and the provable parts are validated automatically.
+
+**Generation directives** mark the positions in a structured or code pattern where unprovable code is generated. A generation directive is a comment starting with `gen:` followed by a natural-language description of what to generate. In the example below, the generated artifact must contain an `if` block that checks `x > 0`; the body of that block is a generation directive, so exactly what it computes is not provable from the pattern:
+
+````spex
+from artifact select ```
+if x > 0 {
+  // gen: let $y be the square root of &x
+}
+```
+````
+
+#### Code Patterns
+
+Code patterns are fenced code blocks with a language identifier. They are similar to structured patterns but apply to one specific language, so they may also use features that are specific to that language. The language identifier is recorded alongside the body in the AST:
+
+````spex
+from number select ```python
+if &number > 0:
+  return True
+else:
+  return False
+```
+````
+
+The body of a code pattern must be syntactically valid in the language it specifies. A pattern with `python` in the fence, for example, should be valid Python.
+
+Whether a code pattern is meaningful for the source universe is a compile-time semantic/type-checking concern, not a grammar restriction:
+
+1. Parse the code pattern.
+2. Infer its signature when possible.
+3. Check compatibility with the source object.
+4. Reject ambiguous or incompatible patterns at compile time.
+
+A code pattern may be syntactically valid in the grammar but semantically invalid in a particular `from ... select ...` context.
+
+Subobjects are themselves objects so they can be subobjected further. A good heuristic is to make the expression read as:
+
+> "from `object` select those that `{pattern}`".
+
+## Set Operations
+
+Objects that live in a common universe can be combined with the set operations `UNION`, `INTERSECT`, and `EXCEPT`:
+
+```spex
+create EvenInt as
+from int
+select { are even };
+
+create PositiveInt as
+from int
+select { are positive };
+
+create EvenPositiveInt as
+EvenInt INTERSECT PositiveInt;
+
+create EvenOrPositive as
+EvenInt UNION PositiveInt;
+
+create EvenNotPositive as
+EvenInt EXCEPT PositiveInt;
+```
+
+`UNION` keeps members that satisfy either side, `INTERSECT` keeps members that satisfy both sides, and `EXCEPT` removes the members of the right side from the left side.
+
+Set operations bind loosest of all object operators and chain left-to-right:
+
+```spex
+create X as
+A UNION B EXCEPT C;   -- (A UNION B) EXCEPT C
+```
+
+## Literals
+
+A literal denotes a single value, and therefore represents the set containing exactly that value:
+
+```spex
+"root"   -- the string root
+42       -- the number 42
+true     -- the boolean true
+```
+
+Literals can participate in subobjecting or serve as alternatives in a coproduct:
+
+```spex
+create UserName as
+string EXCEPT "root";
+
+create Handedness as
+"left" | "right";
+```
+
+## Enums
+
+An enum is an artifact that declares a named set of allowed string values:
+
+```spex
+create Color as
+enum ('red', 'green', 'blue');
+```
+
+An enum constrains a value to one of the listed strings.
+
+## Patterns
+
+A regex pattern literal is a pattern that defines a subobject of `string` — its members are precisely the strings matching the regex:
+
+```spex
+/\d+/
+/create\b/i
+/'([^'\\]|\\.)*'|"([^"\\]|\\.)*"/
+```
+
+The source is kept verbatim and flags such as `i` (case-insensitive) follow the closing slash. Because a pattern is itself an artifact (a subobject of `string`), it participates in set operations and coproducts like any other artifact:
+
+```spex
+create Digits as /\d+/;
+create Word as /\w+/;
+
+create DigitOrWord as Digits UNION Word;
+```
+
+This illustrates a general principle: different artifact kinds have different pattern representations. Regex patterns are the simplest example — a regex expression directly denotes a subobject of `string`. Code and structured patterns extend this idea to other artifact universes by expressing membership predicates as code.
+
+# Concepts, Environments, and Realization
+
+Spex distinguishes between _what_ software should be and _where_ and _how_ it is realized. The central operation is **realization**: a concept is decomposed into other concepts and/or artifacts, gradually becoming more concrete. This is fundamentally different from subobjecting, which restricts membership within a universe without decomposition.
+
+```text
+SUBOBJECTING
+    restricts membership within a universe
+
+REALIZATION
+    decomposes an object into other objects
+```
+
+```text
+PositiveNumber ⊆ Number          -- subobjecting
+WebApplication → (db, be, fe)    -- realization
+```
+
+## Concept
+
+A `concept` is a built-in base universe that represents an abstract specification of something that needs to be realized. Concepts are ordinary Spex objects and can be subobjected just like any other object:
+
+```spex
+create HttpApi as
+from concept
+select {
+  serve HTTP requests and respond with JSON
+};
+
+create EchoApi as
+from HttpApi
+select {
+  return the request body unchanged
+};
+```
+
+Because `EchoApi` is a subobject of `HttpApi`, it inherits everything `HttpApi` stands for and only adds membership restrictions on top of it.
 
 A concept can be abstract and can itself be composed of other abstract concepts. It does not need to directly correspond to executable code. The goal of concepts is to allow specifications to remain independent of implementation details: a concept describes _what_ the software should be, leaving _how_ it is built to be decided later.
 
 ## Environment
 
-An `environment` is a second built-in base object. It describes the development and runtime context in which concepts are to be realized. An environment is independent from the application specification.
+An `environment` is a built-in base universe. It describes the development and runtime context in which realizations take place. An environment is independent from the application specification.
 
 An environment may specify:
 
@@ -367,18 +569,38 @@ select {
 };
 ```
 
-An environment is itself something that can be realized into an _environment artifact_: a reproducible description of the environment, such as a Dockerfile. Docker is not the only possible backend; any artifact that reproducibly describes the environment can serve this role.
-
-Environment construction is separate from application-code generation. Preparing the context in which the software runs is a distinct concern from generating the software itself.
+An environment determines or constrains which realization paths are available. Different environments can therefore provide different realization paths for the same concept. An environment is itself something that can be realized into an _environment artifact_: a reproducible description of the environment, such as a Dockerfile. Docker is not the only possible backend; any artifact that reproducibly describes the environment can serve this role.
 
 ## Realization
 
 Realization is the mechanism that connects an abstract concept to a more concrete representation. It is fundamentally different from subobjecting:
 
-- a subobject preserves the object's base type
-- a realization may cross abstraction or type boundaries
+- **Subobjecting** preserves the object's base universe. Every member of `PositiveNumber` is still a `Number`.
+- **Realization** may cross universe boundaries. Realizing a `Concept` does not mean the result is a subobject of that concept.
 
-Therefore, realizing a `Concept` does not mean that the resulting object is a subobject of that concept.
+A realization decomposes a concept into other concepts and/or artifacts:
+
+```text
+Concept
+   │
+   └── realization ──> Concept
+                          │
+                          └── realization ──> Artifact
+```
+
+For example, a `WebApplication` concept might be realized as a product of more specific concepts:
+
+```text
+WebApplication
+    ── realized-by ──>
+        (
+            database: SQLSchemaDescription,
+            backend: ExpressAppDescription,
+            frontend: ReactUIDescription
+        )
+```
+
+Each component is a part/decomposition of the `WebApplication` — not a more specific `WebApplication`.
 
 A realization is associated with an environment because different environments may realize the same abstract concept differently. The same abstract `HttpApi`, for example, might be realized using Flask in a Python environment or Express in a TypeScript environment:
 
@@ -398,22 +620,16 @@ realize HttpApi as FlaskHttpApi in Python;
 
 Realization is recursive: an abstract concept can be realized into objects that are themselves still abstract and require further realization. Code generation is possible when the relevant abstract concepts have reached concrete realizations.
 
-The concrete representation produced by a realization is an artifact: a subobject of the `artifact` base object that can be generated and validated against provable constraints.
-
 ## Relationship Between the Three
 
-The overall model connects the specification to concrete implementations:
+The overall model connects the specification to concrete artifacts:
 
 ```text
-Concept
-   |
-   | realization in an Environment
-   v
-Environment-specific representation
-   |
-   | generation
-   v
-Concrete implementation/code
+Concept ── realization in Environment ──> Concept / Artifact
+                                                   │
+                                                   │ subobjecting
+                                                   ▼
+                                            constrained artifact
 ```
 
 Environments follow the same path towards a concrete artifact:
@@ -421,7 +637,7 @@ Environments follow the same path towards a concrete artifact:
 ```text
 Environment
    |
-   | generation
+   | realization
    v
 Environment artifact
 (e.g. Dockerfile)
@@ -431,14 +647,16 @@ The important distinction is:
 
 **Concepts describe what the software should be.
 Environments describe where/how it is to be realized.
-Realizations connect the abstract specification to concrete representations.**
+Realizations decompose the abstract specification into concrete representations.**
+
+Synthia can use this graph to choose a path from an abstract concept toward concrete artifacts.
 
 # Named Objects
 
 To name an object for reuse:
 
 ```spex
-CREATE Todo AS
+create Todo as
 (
     id: string,
     title: string,
@@ -446,15 +664,15 @@ CREATE Todo AS
     created_at: string
 );
 
-CREATE EmailAddress AS
-FROM string
-SELECT {
+create EmailAddress as
+from string
+select {
   are email addresses
 };
 
-CREATE slugify AS
-FROM string -> string
-SELECT {
+create slugify as
+from string -> string
+select {
   return the slugified string
 };
 ```
@@ -463,10 +681,10 @@ SELECT {
 
 # Referencing
 
-Spex allows referencing other objects in constraints using string interpolation as in template strings. The scope of a variable is determined using the same rules as in Typescript.
+Spex allows referencing other objects in patterns using `@` followed by the object name. The scope of a reference is determined using the same rules as in TypeScript.
 
 ```spex
-CREATE Todo AS
+create Todo as
 (
     id: string,
     title: string,
@@ -474,24 +692,22 @@ CREATE Todo AS
     created_at: string
 );
 
-CREATE validate AS
-FROM Todo -> bool
-SELECT {
+create validate as
+from Todo -> bool
+select {
   return true if @created_at is a valid date and return false otherwise
 };
 
-CREATE CreateTodo AS
-FROM Todo -> Bool
-SELECT {
+create CreateTodo as
+from Todo -> Bool
+select {
   1. call @validate to validate the given todo
   2. throw an exception if validation failed
   3. insert the todo in the Todo table
 }
 ```
 
-This forms an explicit software dependency graph between objects.
-
-The parser automatically extracts references from constraints into structured AST nodes, making it easy to analyze dependencies programmatically. Each constraint is parsed into a sequence of text segments and reference nodes:
+The parser automatically extracts references from patterns into structured AST nodes, making it easy to analyze dependencies programmatically. Each pattern is parsed into a sequence of text segments and reference nodes:
 
 ```spex
 "call @LoadTodos using @path"
@@ -501,15 +717,15 @@ The parser automatically extracts references from constraints into structured AS
 Use `.` to reference a member of a product object:
 
 ```spex
-CREATE ComplexNumber AS
+create ComplexNumber as
 (
     real: number,
     imag: number
 );
 
-CREATE Abs AS
-FROM (z: ComplexNumber) -> number
-SELECT {
+create Abs as
+from (z: ComplexNumber) -> number
+select {
   return square root of @z.real^2 + @z.imag^2
 }
 ```
@@ -523,15 +739,15 @@ Any defined object can be reused in another file by importing it where it is nee
 Suppose we have a file `types.spex` with the following content:
 
 ```spex
-CREATE EmailAddress AS
-FROM string
-SELECT {
+create EmailAddress as
+from string
+select {
   are email addresses
 };
 
-CREATE Password AS
-FROM string
-SELECT {
+create Password as
+from string
+select {
   - have at least 8 characters
   - contain at least one upper case character
   - contain at least one lower case character
@@ -543,29 +759,29 @@ SELECT {
 Then, we can import `EmailAddress` as itself in some other file:
 
 ```spex
-IMPORT EmailAddress FROM "types.spex";
+import EmailAddress from "types.spex";
 ```
 
 Or give it a different alias:
 
 ```spex
-IMPORT EmailAddress FROM "types.spex" AS Username;
+import EmailAddress from "types.spex" as Username;
 ```
 
 Or import the whole file:
 
 ```spex
-IMPORT "types.spex" AS type;
+import "types.spex" as type;
 ```
 
-In case the whole file is imported, it's objects could be referenced by:
+In case the whole file is imported, its objects could be referenced by:
 
 ```spex
-IMPORT "types.spex" AS types;
+import "types.spex" as types;
 
-CREATE SignUp AS
-FROM (user: types.EmailAddress, pass: types.Password) -> string
-SELECT {
+create SignUp as
+from (user: types.EmailAddress, pass: types.Password) -> string
+select {
   1. Check @user doesn't exists
   2. throw an error if the user exists
   3. add @user to the User table alongside the SHA-256 hash of @pass
@@ -577,21 +793,21 @@ SELECT {
 
 # Including Resources
 
-A _resource_ is an external artifact that is not generated, such as an image, a JSON file, or a folder of assets. Use the `INCLUDE` declaration to bring a resource into scope:
+A _resource_ is an external artifact that is not generated, such as an image, a JSON file, or a folder of assets. Use the `include` declaration to bring a resource into scope:
 
 ```spex
-INCLUDE "config.json" AS config;
-INCLUDE "images/logo.png" AS logo;
+include "config.json" as config;
+include "images/logo.png" as logo;
 ```
 
-The address is a string literal pointing to a file or folder. The name becomes a first-class object in the current scope and can be referenced in constraints with `@`:
+The address is a string literal pointing to a file or folder. The name becomes a first-class object in the current scope and can be referenced in patterns with `@`:
 
 ```spex
-INCLUDE "schema.sql" AS schema;
+include "schema.sql" as schema;
 
-CREATE LoadSchema AS
-FROM unit -> string
-SELECT {
+create LoadSchema as
+from unit -> string
+select {
   1. read the SQL file at @schema
   2. return its contents as a string
 };
@@ -602,11 +818,11 @@ SELECT {
 When the address points to a folder, the resource is treated as a product object whose fields correspond to the files inside it:
 
 ```spex
-INCLUDE "assets/" AS assets;
+include "assets/" as assets;
 
-CREATE LoadConfig AS
-FROM unit -> Config
-SELECT {
+create LoadConfig as
+from unit -> Config
+select {
   1. read @assets.config.json
   2. return its content as a Config object
 };
@@ -614,43 +830,43 @@ SELECT {
 
 ## Constraints
 
-Resources cannot be subobjected. That is, `FROM <resource> SELECT { ... }` is not valid. This is because a resource represents a concrete external artifact, not a space of possible implementations.
+Resources cannot be subobjected. That is, `from <resource> select { ... }` is not valid. This is because a resource represents a concrete external artifact, not a space of possible implementations.
 
 ---
 
 # Generating Code
 
-To specify what objects in an specification has to be generated as explicit code:
+To specify what objects in a specification should be generated as concrete artifacts:
 
 ```spex
-GENERATE CreateTodo
+generate CreateTodo
 ```
 
-Generation of some object naturally triggers generation of it's dependencies as well.
+Generation of some object naturally triggers generation of its dependencies as well. Generation is a consequence of selecting a realization path that ends in concrete artifacts — the fundamental semantic operation of Spex is realization, not code generation.
 
 ---
 
 # Packaging Code
 
-To specify how generated code should be packaged, use the `PACKAGE` declaration:
+To specify how generated artifacts should be packaged, use the `package` declaration:
 
 ```spex
-PACKAGE EXECUTABLE <name> AS <object> IN <environment>
-PACKAGE MODULE <name> AS <object> IN <environment>
+package executable <name> as <object> in <environment>
+package module <name> as <object> in <environment>
 ```
 
-`EXECUTABLE` packages the object as a standalone application entry point. `MODULE` packages it as a library or module that can be imported by other code. The object after `IN` is an environment describing where the package is realized.
+`executable` packages the object as a standalone application entry point. `module` packages it as a library or module that can be imported by other code. The object after `in` is an environment describing where the package is realized.
 
 ```spex
-PACKAGE EXECUTABLE myapp AS Main IN Python;
-PACKAGE MODULE mylib AS utils IN Node;
+package executable myapp as Main in Python;
+package module mylib as utils in Node;
 ```
 
 The object can be any valid Spex expression:
 
 ```spex
-PACKAGE EXECUTABLE cli AS (path: string) -> unit IN Python;
-PACKAGE MODULE mylib AS app.handlers IN Node;
+package executable cli as (path: string) -> unit in Python;
+package module mylib as app.handlers in Node;
 ```
 
 ---
@@ -676,7 +892,7 @@ Spex aims to provide:
 - reusable semantic software abstractions
 - compositional AI-assisted programming
 - declarative architecture specification
-- implementation synthesis guided by constraints
+- realization graphs that guide implementation synthesis
 
 Instead of prompting LLMs directly, developers work with structured software semantics that can be analyzed, refined, verified, and synthesized.
 
@@ -694,17 +910,17 @@ The application supports:
 
 ---
 
-## Domain Objects
+## Artifacts
 
 ```spex
-CREATE TodoTitle AS
-FROM string
-SELECT {
+create TodoTitle as
+from string
+select {
   - are not empty
   - are shorter than 120 characters
 };
 
-CREATE Todo AS
+create Todo as
 (
     id: string,
     title: TodoTitle,
@@ -717,27 +933,27 @@ CREATE Todo AS
 ## Storage Layer
 
 ```spex
-CREATE TodoFilePath AS
-FROM string
-SELECT {
+create TodoFilePath as
+from string
+select {
   represent a valid path to a JSON file storing todos
 };
 
-CREATE LoadTodos AS
-FROM (path: TodoFilePath) -> Todo[]
-SELECT {
+create LoadTodos as
+from (path: TodoFilePath) -> Todo[]
+select {
   1. read the JSON file at @path
   2. return an empty list if the file does not exist
   3. parse the JSON content into todos
   4. throw an exception if the JSON is invalid
 };
 
-CREATE SaveTodos AS
-FROM (
+create SaveTodos as
+from (
   path: TodoFilePath,
   todos: Todo[]
 ) -> unit
-SELECT {
+select {
   1. serialize @todos as formatted JSON
   2. write the JSON to @path
 };
@@ -748,11 +964,11 @@ SELECT {
 ## Todo Creation
 
 ```spex
-CREATE CreateTodo AS
-FROM (
+create CreateTodo as
+from (
   title: TodoTitle
 ) -> Todo
-SELECT {
+select {
   1. generate a UUID for the todo id
   2. create a todo with completed set to false
   3. return the created todo
@@ -764,12 +980,12 @@ SELECT {
 ## Add Todo Command
 
 ```spex
-CREATE AddTodo AS
-FROM (
+create AddTodo as
+from (
   path: TodoFilePath,
   title: TodoTitle
 ) -> Todo
-SELECT {
+select {
   1. call @LoadTodos using @path
   2. call @CreateTodo using @title
   3. append the new todo to the loaded todos
@@ -783,11 +999,11 @@ SELECT {
 ## List Todos Command
 
 ```spex
-CREATE ListTodos AS
-FROM (
+create ListTodos as
+from (
   path: TodoFilePath
 ) -> string
-SELECT {
+select {
   1. load todos using @LoadTodos
   2. return a formatted string representation of all todos
   3. show completed todos with a checkmark
@@ -800,12 +1016,12 @@ SELECT {
 ## Complete Todo Command
 
 ```spex
-CREATE CompleteTodo AS
-FROM (
+create CompleteTodo as
+from (
   path: TodoFilePath,
   id: TodoId
 ) -> Todo
-SELECT {
+select {
   1. load todos using @LoadTodos
   2. search for the todo matching @id
   3. throw an exception if the todo does not exist
@@ -820,15 +1036,15 @@ SELECT {
 ## CLI Parsing
 
 ```spex
-CREATE CliArgs AS
+create CliArgs as
 (
     command: string,
     arguments: string[]
 );
 
-CREATE ParseCliArgs AS
-FROM string[] -> CliArgs
-SELECT {
+create ParseCliArgs as
+from string[] -> CliArgs
+select {
   1. parse the command line arguments
   2. extract the command name
   3. extract the command arguments
@@ -840,9 +1056,9 @@ SELECT {
 ## CLI Entry Point
 
 ```spex
-CREATE Main AS
-FROM string[] -> unit
-SELECT {
+create Main as
+from string[] -> unit
+select {
   1. parse process arguments using @ParseCliArgs
 
   2. if the command is "add":
