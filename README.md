@@ -225,6 +225,8 @@ if x > 0:
 
 This declares the same constraint as the structured version above, but only a Python implementation can satisfy it. Like structured constraints, code constraints are (partially) provable during generation and may only be applied to subobjects of `artifact`.
 
+The body of a code constraint must be syntactically valid in the language it specifies. A constraint with `python` in the fence, for example, should be valid Python so that it can be checked against generated code.
+
 Subobjects are themselves objects so they could be subobjected as well. A good heuristic for writing constraints is to make the expression read as:
 
 > "from `object` select those that `{constraint}`".
@@ -244,8 +246,12 @@ SELECT { are positive };
 
 CREATE EvenPositiveInt AS
 EvenInt INTERSECT PositiveInt;
-CREATE EvenOrPositive AS EvenInt UNION PositiveInt;
-CREATE EvenNotPositive AS EvenInt EXCEPT PositiveInt;
+
+CREATE EvenOrPositive AS
+EvenInt UNION PositiveInt;
+
+CREATE EvenNotPositive AS
+EvenInt EXCEPT PositiveInt;
 ```
 
 `UNION` keeps members that satisfy either side, `INTERSECT` keeps members that satisfy both sides, and `EXCEPT` removes the members of the right side from the left side.
