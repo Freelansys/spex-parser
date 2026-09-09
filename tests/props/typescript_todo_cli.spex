@@ -66,5 +66,4 @@ realize TodoCli as (
   main: TypeScriptTodoCli
 ) in TypeScriptCliEnv;
 
-generate TypeScriptTodoCli;
-package executable mytotscli as TypeScriptTodoCli in TypeScriptCliEnv;
+generate TodoCli in TypeScriptCliEnv;

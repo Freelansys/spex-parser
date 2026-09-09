@@ -104,5 +104,4 @@ realize TodoWeb as (
   main: ExpressTodoWeb
 ) in ExpressWebEnv;
 
-generate ExpressTodoWeb;
-package executable expresstodo as ExpressTodoWeb in ExpressWebEnv;
+generate TodoWeb in ExpressWebEnv;

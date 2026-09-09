@@ -43,18 +43,6 @@ export const ImportTok = createToken({
   name: 'ImportTok',
   pattern: /import\b/i,
 })
-export const PackageTok = createToken({
-  name: 'PackageTok',
-  pattern: /package\b/i,
-})
-export const ExecutableTok = createToken({
-  name: 'ExecutableTok',
-  pattern: /executable\b/i,
-})
-export const ModuleTok = createToken({
-  name: 'ModuleTok',
-  pattern: /module\b/i,
-})
 export const UnionTok = createToken({
   name: 'UnionTok',
   pattern: /union\b/i,
@@ -242,9 +230,6 @@ export const allTokens = [
   SelectTok,
   GenerateTok,
   ImportTok,
-  PackageTok,
-  ExecutableTok,
-  ModuleTok,
   UnionTok,
   IntersectTok,
   ExceptTok,

@@ -5,7 +5,7 @@ describe('SpexLexer', () => {
   describe('tokenization', () => {
     it('should tokenize keywords', () => {
       const result = SpexLexer.tokenize(
-        'create as from select generate import package executable module realize in'
+        'create as from select generate import realize in'
       )
       expect(result.errors).toHaveLength(0)
       expect(result.tokens.map((t) => t.tokenType.name)).toEqual([
@@ -15,9 +15,6 @@ describe('SpexLexer', () => {
         'SelectTok',
         'GenerateTok',
         'ImportTok',
-        'PackageTok',
-        'ExecutableTok',
-        'ModuleTok',
         'RealizeTok',
         'InTok',
       ])
@@ -25,7 +22,7 @@ describe('SpexLexer', () => {
 
     it('should tokenize keywords case-insensitively', () => {
       const result = SpexLexer.tokenize(
-        'CREATE AS FROM SELECT GENERATE IMPORT PACKAGE EXECUTABLE MODULE UNION INTERSECT EXCEPT REALIZE IN'
+        'CREATE AS FROM SELECT GENERATE IMPORT UNION INTERSECT EXCEPT REALIZE IN'
       )
       expect(result.errors).toHaveLength(0)
       expect(result.tokens.map((t) => t.tokenType.name)).toEqual([
@@ -35,9 +32,6 @@ describe('SpexLexer', () => {
         'SelectTok',
         'GenerateTok',
         'ImportTok',
-        'PackageTok',
-        'ExecutableTok',
-        'ModuleTok',
         'UnionTok',
         'IntersectTok',
         'ExceptTok',
@@ -99,10 +93,10 @@ describe('SpexLexer', () => {
 
     it('should handle keywords with word boundary', () => {
       const result = SpexLexer.tokenize(
-        'createfoo foocreate asfoo fooas fooselect selectfoo foofrom fromfoo generatefoo foogenerate importfoo fooimport packagefoo fopackage executablefoo foexecutable modulefoo fomodule artifactfoo fooartifact conceptfoo fooconcept environmentfoo fooenvironment realizefoo foorealize info fooin'
+        'createfoo foocreate asfoo fooas fooselect selectfoo foofrom fromfoo generatefoo foogenerate importfoo fooimport artifactfoo fooartifact conceptfoo fooconcept environmentfoo fooenvironment realizefoo foorealize info fooin'
       )
       expect(result.errors).toHaveLength(0)
-      expect(result.tokens.map((t) => t.tokenType.name)).toEqual(Array(28).fill('Identifier'))
+      expect(result.tokens.map((t) => t.tokenType.name)).toEqual(Array(22).fill('Identifier'))
     })
 
     it('should tokenize the concept and environment base types', () => {

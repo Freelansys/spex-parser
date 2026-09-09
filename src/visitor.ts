@@ -5,7 +5,6 @@ import type {
   ObjectDeclaration,
   ImportDeclaration,
   GenerateDeclaration,
-  PackageDeclaration,
   RealizeDeclaration,
   IncludeDeclaration,
   LiteralObject,
@@ -100,9 +99,6 @@ export class SpexParserVisitor extends BaseSpexVisitor implements ICstVisitor<an
   declaration(ctx: any): Declaration {
     if (ctx.realizeDeclaration) {
       return this.visit(ctx.realizeDeclaration)
-    }
-    if (ctx.packageDeclaration) {
-      return this.visit(ctx.packageDeclaration)
     }
     if (ctx.objectDeclaration) {
       return this.visit(ctx.objectDeclaration)
@@ -308,21 +304,13 @@ export class SpexParserVisitor extends BaseSpexVisitor implements ICstVisitor<an
     }
   }
 
-  packageDeclaration(ctx: any): PackageDeclaration {
-    const packageType = ctx.ExecutableTok ? ('EXECUTABLE' as const) : ('MODULE' as const)
-    return {
-      kind: 'PackageDeclaration',
-      packageType,
-      name: ctx.Identifier[0].image,
-      objectName: this.visit(ctx.setObject),
-      environment: this.visit(ctx.environment),
-    }
-  }
-
   generateDeclaration(ctx: any): GenerateDeclaration {
     return {
       kind: 'GenerateDeclaration',
       name: ctx.Identifier[0].image,
+      environment: ctx.environment
+        ? this.visit(ctx.environment)
+        : { kind: 'NamedObject', name: 'environment' },
     }
   }
 

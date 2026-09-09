@@ -13,10 +13,10 @@ const fixtures: [string, number][] = [
   ['typescript_cli_env.spex', 3],
   ['flask_web_env.spex', 3],
   ['express_web_env.spex', 3],
-  ['python_todo_cli.spex', 16],
-  ['typescript_todo_cli.spex', 16],
-  ['flask_todo_web.spex', 22],
-  ['express_todo_web.spex', 22],
+  ['python_todo_cli.spex', 15],
+  ['typescript_todo_cli.spex', 15],
+  ['flask_todo_web.spex', 21],
+  ['express_todo_web.spex', 21],
 ]
 
 describe('end-to-end', () => {

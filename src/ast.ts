@@ -7,19 +7,8 @@ export type Declaration =
   | ObjectDeclaration
   | ImportDeclaration
   | GenerateDeclaration
-  | PackageDeclaration
   | RealizeDeclaration
   | IncludeDeclaration
-
-export type PackageKind = 'EXECUTABLE' | 'MODULE'
-
-export type PackageDeclaration = {
-  kind: 'PackageDeclaration'
-  packageType: PackageKind
-  name: string
-  objectName: ObjectExpression
-  environment: ObjectExpression
-}
 
 export type ObjectDeclaration = {
   kind: 'ObjectDeclaration'
@@ -34,9 +23,14 @@ export type ImportDeclaration = {
   alias: string | null
 }
 
+// A `generate` command asks the compiler to produce realizations of the named
+// concept or artifact. Without an environment, realizations are produced in
+// every environment in which the object is realized; the optional `in` clause
+// focuses generation on a single environment.
 export type GenerateDeclaration = {
   kind: 'GenerateDeclaration'
   name: string
+  environment: ObjectExpression
 }
 
 export type RealizeDeclaration = {

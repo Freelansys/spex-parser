@@ -826,38 +826,19 @@ Resources cannot be subobjected. That is, `from <resource> select { ... }` is no
 
 # Generating Code
 
-To specify what objects in a specification should be generated as concrete artifacts:
+A `generate` command tells the compiler to produce all realizations of the named concept or artifact, in every environment in which it is realized:
 
 ```spex
-generate CreateTodo
+generate CreateTodo;
 ```
 
-Generation of some object naturally triggers generation of its dependencies as well. Generation is a consequence of selecting a realization path that ends in concrete artifacts — the fundamental semantic operation of Spex is realization, not code generation.
-
----
-
-# Packaging Code
-
-To specify how generated artifacts should be packaged, use the `package` declaration:
+An optional `in <environment>` clause focuses generation on a single environment:
 
 ```spex
-package executable <name> as <object> in <environment>
-package module <name> as <object> in <environment>
+generate CreateTodo in Python;
 ```
 
-`executable` packages the object as a standalone application entry point. `module` packages it as a library or module that can be imported by other code. The object after `in` is an environment describing where the package is realized.
-
-```spex
-package executable myapp as Main in Python;
-package module mylib as utils in Node;
-```
-
-The object can be any valid Spex expression:
-
-```spex
-package executable cli as (path: string) -> unit in Python;
-package module mylib as app.handlers in Node;
-```
+A concept or artifact may be realized in several environments. Without `in`, issuing `generate` for it yields each of its realizations in each of those environments; with `in`, only the realizations in that environment are produced. Generation of some object naturally triggers generation of its dependencies as well. Generation is a consequence of selecting a realization path that ends in concrete artifacts — the fundamental semantic operation of Spex is realization, not code generation.
 
 ---
 
@@ -1072,7 +1053,7 @@ select {
 ## Code Generation
 
 ```spex
-package executable MyTodo as Main in Python;
+generate MyTodo;
 ```
 
-This triggers generation of the complete CLI application and all required dependencies.
+This triggers generation of the complete CLI application — in every environment in which it is realized — and all required dependencies.
