@@ -63,7 +63,6 @@ export type ObjectExpression =
   | SetObject
   | CoproductObject
   | PatternLiteralObject
-  | ExponentialPattern
 
 export type NamedObject = {
   kind: 'NamedObject'
@@ -93,15 +92,40 @@ export type ConstraintText = {
 
 export type ConstraintPart = ConstraintReference | ConstraintText
 
+// A constraint with references parsed out into its parts.
 export type Constraint = {
   raw: string
   parts: ConstraintPart[]
 }
 
+// Subobjects refine an object by selecting members that satisfy a
+// constraint. Base objects are constrained in three ways:
+//   - natural language:   SELECT { ... }
+//   - structured:         SELECT ``` ... ```
+//   - code:               SELECT ```lang ... ```
+export type ConstraintType = 'NaturalLanguage' | 'Structured' | 'Code'
+
+export type SubObjectConstraint =
+  | {
+      type: 'NaturalLanguage'
+      raw: string
+      parts: ConstraintPart[]
+    }
+  | {
+      type: 'Structured'
+      raw: string
+      parts: ConstraintPart[]
+    }
+  | {
+      type: 'Code'
+      language: string
+      body: string
+    }
+
 export type SubObject = {
   kind: 'SubObject'
   base: ObjectExpression
-  constraint: Constraint
+  constraint: SubObjectConstraint
 }
 
 export type ArrayObject = {
@@ -163,20 +187,4 @@ export type PatternLiteralObject = {
   kind: 'PatternLiteralObject'
   source: string
   flags: string
-}
-
-export type PatternBlock = {
-  raw: string
-  parts: ConstraintPart[]
-  start: number
-  end: number
-}
-
-export type ExponentialPattern = {
-  kind: 'ExponentialPattern'
-  base: ObjectExpression
-  exponent: ObjectExpression
-  language: string
-  body: string
-  patterns: PatternBlock[]
 }

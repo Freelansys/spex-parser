@@ -83,10 +83,6 @@ export const IncludeTok = createToken({
   name: 'IncludeTok',
   pattern: /include\b/i,
 })
-export const LambdaTok = createToken({
-  name: 'LambdaTok',
-  pattern: /lambda\b/i,
-})
 
 // Symbols
 export const ArrowTok = createToken({ name: 'ArrowTok', pattern: /->/ })
@@ -151,7 +147,7 @@ export const PatternLiteral = createToken({
   },
 })
 
-// Code block: ```language\n...content...```
+// Code block: ```\n...content...``` or ```language\n...content...```
 export const CodeBlock = createToken({
   name: 'CodeBlock',
   line_breaks: true,
@@ -159,11 +155,11 @@ export const CodeBlock = createToken({
     if (text[startOffset] !== '`' || text[startOffset + 1] !== '`' || text[startOffset + 2] !== '`')
       return null
     let i = startOffset + 3
-    // require at least one language identifier character
-    if (i >= text.length || !/[a-zA-Z0-9_]/.test(text[i]!)) return null
+    // optional language identifier on the opening fence line
     const langStart = i
     while (i < text.length && text[i] !== '\n' && text[i] !== '\r') i++
-    if (i === langStart) return null // no language identifier
+    const language = text.slice(langStart, i).trim()
+    if (language !== '' && !/^[a-zA-Z0-9_]+$/.test(language)) return null
     if (i >= text.length) return null
     // skip line ending
     if (text[i] === '\r' && text[i + 1] === '\n') i += 2
@@ -260,7 +256,6 @@ export const allTokens = [
   RealizeTok,
   InTok,
   IncludeTok,
-  LambdaTok,
 
   ArrowTok,
   PipeTok,

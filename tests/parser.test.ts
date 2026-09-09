@@ -96,6 +96,19 @@ describe('SpexParser', () => {
       expect(parser.errors).toHaveLength(0)
     })
 
+    it('should parse subobject declaration with a structured constraint', () => {
+      const testCase = 'create double as from number -> number select ```\nreturn n * 2\n```;'
+      const { parser } = parseInput(testCase)
+      expect(parser.errors).toHaveLength(0)
+    })
+
+    it('should parse subobject declaration with a code constraint', () => {
+      const testCase =
+        'create double as from number -> number select ```python\nreturn @n * 2\n```;'
+      const { parser } = parseInput(testCase)
+      expect(parser.errors).toHaveLength(0)
+    })
+
     it('should parse subobject declaration with a set operation base', () => {
       const testCase =
         'create MySubobject as from Web intersect TypeScript select { is an express app };'
@@ -736,52 +749,6 @@ describe('SpexParser', () => {
 
     it('should not parse include without name', () => {
       const testCase = 'include "config.json" as ;'
-      const { parser } = parseInput(testCase)
-      expect(parser.errors).not.toHaveLength(0)
-    })
-  })
-
-  describe('lambda object', () => {
-    it('should parse lambda with product base', () => {
-      const testCase = 'create sum as lambda (a: number, b: number) -> number ```python\nreturn a + b\n```;'
-      const { parser } = parseInput(testCase)
-      expect(parser.errors).toHaveLength(0)
-    })
-
-    it('should parse lambda with named base', () => {
-      const testCase = 'create double as lambda number -> number ```python\nreturn @n * 2\n```;'
-      const { parser } = parseInput(testCase)
-      expect(parser.errors).toHaveLength(0)
-    })
-
-    it('should parse lambda case-insensitively', () => {
-      const testCase = 'create sum as LAMBDA (a: number) -> number ```python\nreturn @a\n```;'
-      const { parser } = parseInput(testCase)
-      expect(parser.errors).toHaveLength(0)
-    })
-
-    it('should parse lambda with pattern blocks', () => {
-      const testCase =
-        'create transform as lambda (x: number) -> number ```python\nif @x > 0:\n  @{return sin(@x)}\nelse:\n  @{return cos(@x)}\n```;'
-      const { parser } = parseInput(testCase)
-      expect(parser.errors).toHaveLength(0)
-    })
-
-    it('should parse lambda in product field', () => {
-      const testCase =
-        'create Config as (handler: lambda (x: string) -> string ```typescript\nreturn x.toUpperCase();\n```, port: number);'
-      const { parser } = parseInput(testCase)
-      expect(parser.errors).toHaveLength(0)
-    })
-
-    it('should not parse lambda without language', () => {
-      const testCase = 'create sum as lambda (a: number) -> number ```\nreturn @a\n```;'
-      const { parser } = parseInput(testCase)
-      expect(parser.errors).not.toHaveLength(0)
-    })
-
-    it('should not parse lambda without code block', () => {
-      const testCase = 'create sum as lambda (a: number) -> number;'
       const { parser } = parseInput(testCase)
       expect(parser.errors).not.toHaveLength(0)
     })

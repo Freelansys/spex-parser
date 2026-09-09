@@ -13,11 +13,10 @@ import type {
   SetObject,
   CoproductObject,
   PatternLiteralObject,
-  ExponentialPattern,
-  PatternBlock,
   ObjectExpression,
   NamedObject,
   SubObject,
+  SubObjectConstraint,
   ArrayObject,
   Constraint,
   ConstraintPart,
@@ -57,6 +56,34 @@ export function parseConstraint(raw: string): Constraint {
   }
 
   return { raw, parts }
+}
+
+function extractCodeLanguage(image: string): string {
+  const langEnd = image.indexOf('\n')
+  if (langEnd === -1) return ''
+  return image.slice(3, langEnd).trim()
+}
+
+function extractCodeBody(image: string): string {
+  const firstNewline = image.indexOf('\n')
+  return image.slice(firstNewline + 1, -3).trimEnd()
+}
+
+function codeConstraint(image: string): SubObjectConstraint {
+  const language = extractCodeLanguage(image)
+  const body = extractCodeBody(image)
+  if (language === '') {
+    return {
+      type: 'Structured',
+      raw: body,
+      parts: parseConstraint(body).parts,
+    }
+  }
+  return {
+    type: 'Code',
+    language,
+    body,
+  }
 }
 
 export class SpexParserVisitor extends BaseSpexVisitor implements ICstVisitor<any, any> {
@@ -169,8 +196,6 @@ export class SpexParserVisitor extends BaseSpexVisitor implements ICstVisitor<an
       expr = this.visit(ctx.enumObject)
     } else if (ctx.patternObject) {
       expr = this.visit(ctx.patternObject)
-    } else if (ctx.lambdaObject) {
-      expr = this.visit(ctx.lambdaObject)
     } else if (ctx.literalObject) {
       expr = this.visit(ctx.literalObject)
     } else {
@@ -241,12 +266,24 @@ export class SpexParserVisitor extends BaseSpexVisitor implements ICstVisitor<an
   }
 
   subObject(ctx: any): SubObject {
+    const base = this.visit(ctx.base)
+    if (ctx.CodeBlock) {
+      return {
+        kind: 'SubObject',
+        base,
+        constraint: codeConstraint(ctx.CodeBlock[0].image),
+      }
+    }
     const rawText: string = ctx.SelectBlock[0].image
     const rawConstraint = unescapeConstraint(rawText.slice(1, -1).trim())
     return {
       kind: 'SubObject',
-      base: this.visit(ctx.base),
-      constraint: parseConstraint(rawConstraint),
+      base,
+      constraint: {
+        type: 'NaturalLanguage',
+        raw: rawConstraint,
+        parts: parseConstraint(rawConstraint).parts,
+      },
     }
   }
 
@@ -316,52 +353,6 @@ export class SpexParserVisitor extends BaseSpexVisitor implements ICstVisitor<an
       kind: 'IncludeDeclaration',
       name,
       address,
-    }
-  }
-
-  lambdaObject(ctx: any): ExponentialPattern {
-    const image: string = ctx.CodeBlock[0].image
-    const firstNewline = image.indexOf('\n')
-    const langEnd = image.indexOf('\n')
-    const language = image.slice(3, langEnd)
-    const body = image.slice(firstNewline + 1, -3).trimEnd()
-
-    const patterns: PatternBlock[] = []
-    let i = 0
-    while (i < body.length) {
-      if (body[i] === '@' && body[i + 1] === '{') {
-        const start = i
-        let depth = 1
-        i += 2
-        while (i < body.length && depth > 0) {
-          if (body[i] === '\\') {
-            i += 2
-            continue
-          }
-          if (body[i] === '{') depth++
-          if (body[i] === '}') depth--
-          i++
-        }
-        const end = i
-        const raw = body.slice(start + 2, end - 1).trim()
-        patterns.push({
-          raw,
-          parts: parseConstraint(raw).parts,
-          start,
-          end,
-        })
-      } else {
-        i++
-      }
-    }
-
-    return {
-      kind: 'ExponentialPattern',
-      base: this.visit(ctx.exponent),
-      exponent: this.visit(ctx.base),
-      language,
-      body,
-      patterns,
     }
   }
 }

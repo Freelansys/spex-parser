@@ -171,36 +171,13 @@ unit -> string
 
 `string -> unit` represents all functions that take a string as input and do not return anything. `unit -> string` on the other hand, is a function that takes nothing as input, but returns a string.
 
-## Lambda Expressions
-
-A lambda expression defines an exponential pattern with an implementation body. It specifies the function type along with its implementation in a programming language:
-
-````spex
-CREATE double AS
-lambda number -> number ```python
-return @n * 2
-```
-````
-
-The domain (left side of `->`) defines the parameter type, and the codomain (right side) defines the return type. The body is written in a fenced code block with a language identifier.
-
-Lambda expressions support pattern blocks using `@{...}` syntax. Pattern blocks are extracted from the body and can contain references to the function's parameters:
-
-````spex
-CREATE transform AS
-lambda (x: number) -> number ```python
-if @x > 0:
-  @{return sin(@x)}
-else:
-  @{return cos(@x)}
-```
-````
-
-Pattern blocks are parsed into structured AST nodes with their positions tracked, making it easy to analyze and transform them programmatically. Multiple pattern blocks in a single body are distinguished by their start and end positions.
-
 ## Subobjects
 
-Subobjects are analogous to subsets. Subobjects refine an object by selecting memebers that satisfy some constraints. Constraints are defined through natural language:
+Subobjects are analogous to subsets. Subobjects refine an object by selecting members that satisfy a constraint. Base objects can be constrained in three ways: natural language, structured, and code.
+
+### Natural Language Constraints
+
+Natural language constraints are written in braces:
 
 ```spex
 FROM string
@@ -213,6 +190,40 @@ SELECT {
   return the length of the given string
 }
 ```
+
+A natural language constraint describes the required property in prose. It carries no structure that can be checked mechanically, so it is **not provable** in the generated artifact: it is a statement of intent for whoever implements the subobject.
+
+### Structured Constraints
+
+Structured constraints are fenced code blocks without a language identifier. They are written in **SKIT** (Structured Kernel Implementation Template), a minimal language of programming directives that is supported by every modern programming language — `if` expressions, loops, `try`/`catch`, and similar. Because SKIT is universal, a structured constraint can be satisfied by an implementation produced in any programming language:
+
+````spex
+FROM artifact
+SELECT ```
+if x > 0 {
+  // gen: let $y be the square root of &x
+}
+```
+````
+
+Structured and code constraints may only be applied to **subobjects of `artifact`**, the base object for concrete, realizable things. Unlike natural language constraints, they are **(partially) provable**: during generation the produced artifact is checked to contain what the constraint requires, and the provable parts are validated automatically.
+
+**Generation directives** mark the positions in a structured or code constraint where unprovable code is generated. A generation directive is a comment starting with `gen:` followed by a natural-language description of what to generate. In the example above, the generated artifact must contain an `if` block that checks `x > 0`; the body of that block is a generation directive, so exactly what it computes is not provable from the constraint.
+
+### Code Constraints
+
+Code constraints are fenced code blocks with a language identifier. They are similar to structured constraints but apply to one specific language, so they may also use features that are specific to that language. The language identifier is recorded alongside the body in the AST:
+
+````spex
+FROM artifact
+SELECT ```python
+if x > 0:
+  # gen: let $y be the square root of &x
+  pass
+```
+````
+
+This declares the same constraint as the structured version above, but only a Python implementation can satisfy it. Like structured constraints, code constraints are (partially) provable during generation and may only be applied to subobjects of `artifact`.
 
 Subobjects are themselves objects so they could be subobjected as well. A good heuristic for writing constraints is to make the expression read as:
 
