@@ -7,19 +7,8 @@ export type Declaration =
   | ObjectDeclaration
   | ImportDeclaration
   | GenerateDeclaration
-  | PackageDeclaration
   | RealizeDeclaration
   | IncludeDeclaration
-
-export type PackageKind = 'EXECUTABLE' | 'MODULE'
-
-export type PackageDeclaration = {
-  kind: 'PackageDeclaration'
-  packageType: PackageKind
-  name: string
-  objectName: ObjectExpression
-  environment: ObjectExpression
-}
 
 export type ObjectDeclaration = {
   kind: 'ObjectDeclaration'
@@ -34,9 +23,14 @@ export type ImportDeclaration = {
   alias: string | null
 }
 
+// A `generate` command asks the compiler to produce realizations of the named
+// concept or artifact. Without an environment, realizations are produced in
+// every environment in which the object is realized; the optional `in` clause
+// focuses generation on a single environment.
 export type GenerateDeclaration = {
   kind: 'GenerateDeclaration'
   name: string
+  environment: ObjectExpression
 }
 
 export type RealizeDeclaration = {
@@ -58,12 +52,10 @@ export type ObjectExpression =
   | ExponentialObject
   | SubObject
   | ArrayObject
-  | EnumObject
   | LiteralObject
   | SetObject
   | CoproductObject
   | PatternLiteralObject
-  | ExponentialPattern
 
 export type NamedObject = {
   kind: 'NamedObject'
@@ -81,8 +73,11 @@ export type ExponentialObject = {
   exponent: ObjectExpression
 }
 
-export type ConstraintReference = {
-  kind: 'ConstraintReference'
+// A `@ref` directive in a constraint brings the named object into the
+// generation context. It applies to natural-language, structured, and code
+// constraints alike.
+export type ReferenceDirective = {
+  kind: 'ReferenceDirective'
   name: string
 }
 
@@ -91,27 +86,48 @@ export type ConstraintText = {
   text: string
 }
 
-export type ConstraintPart = ConstraintReference | ConstraintText
+export type ConstraintPart = ReferenceDirective | ConstraintText
 
+// A constraint with its `@ref` directives parsed out into parts.
 export type Constraint = {
   raw: string
   parts: ConstraintPart[]
 }
 
+// Subobjects refine an object by selecting members that satisfy a
+// constraint. Base objects are constrained in three ways:
+//   - natural language:   SELECT { ... }
+//   - structured:         SELECT ``` ... ```
+//   - code:               SELECT ```lang ... ```
+export type ConstraintType = 'NaturalLanguage' | 'Structured' | 'Code'
+
+export type SubObjectConstraint =
+  | {
+      type: 'NaturalLanguage'
+      raw: string
+      parts: ConstraintPart[]
+    }
+  | {
+      type: 'Structured'
+      raw: string
+      parts: ConstraintPart[]
+    }
+  | {
+      type: 'Code'
+      language: string
+      body: string
+      parts: ConstraintPart[]
+    }
+
 export type SubObject = {
   kind: 'SubObject'
   base: ObjectExpression
-  constraint: Constraint
+  constraint: SubObjectConstraint
 }
 
 export type ArrayObject = {
   kind: 'ArrayObject'
   base: ObjectExpression
-}
-
-export type EnumObject = {
-  kind: 'EnumObject'
-  values: string[]
 }
 
 export type LiteralObject = StringLiteralObject | NumberLiteralObject | BoolLiteralObject
@@ -163,20 +179,4 @@ export type PatternLiteralObject = {
   kind: 'PatternLiteralObject'
   source: string
   flags: string
-}
-
-export type PatternBlock = {
-  raw: string
-  parts: ConstraintPart[]
-  start: number
-  end: number
-}
-
-export type ExponentialPattern = {
-  kind: 'ExponentialPattern'
-  base: ObjectExpression
-  exponent: ObjectExpression
-  language: string
-  body: string
-  patterns: PatternBlock[]
 }

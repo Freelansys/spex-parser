@@ -5,7 +5,7 @@ describe('SpexLexer', () => {
   describe('tokenization', () => {
     it('should tokenize keywords', () => {
       const result = SpexLexer.tokenize(
-        'create as from select generate import package executable module enum realize in'
+        'create as from select generate import realize in'
       )
       expect(result.errors).toHaveLength(0)
       expect(result.tokens.map((t) => t.tokenType.name)).toEqual([
@@ -15,10 +15,6 @@ describe('SpexLexer', () => {
         'SelectTok',
         'GenerateTok',
         'ImportTok',
-        'PackageTok',
-        'ExecutableTok',
-        'ModuleTok',
-        'EnumTok',
         'RealizeTok',
         'InTok',
       ])
@@ -26,7 +22,7 @@ describe('SpexLexer', () => {
 
     it('should tokenize keywords case-insensitively', () => {
       const result = SpexLexer.tokenize(
-        'CREATE AS FROM SELECT GENERATE IMPORT PACKAGE EXECUTABLE MODULE ENUM UNION INTERSECT EXCEPT REALIZE IN'
+        'CREATE AS FROM SELECT GENERATE IMPORT UNION INTERSECT EXCEPT REALIZE IN'
       )
       expect(result.errors).toHaveLength(0)
       expect(result.tokens.map((t) => t.tokenType.name)).toEqual([
@@ -36,32 +32,11 @@ describe('SpexLexer', () => {
         'SelectTok',
         'GenerateTok',
         'ImportTok',
-        'PackageTok',
-        'ExecutableTok',
-        'ModuleTok',
-        'EnumTok',
         'UnionTok',
         'IntersectTok',
         'ExceptTok',
         'RealizeTok',
         'InTok',
-      ])
-    })
-
-    it('should tokenize enum object declarations', () => {
-      const result = SpexLexer.tokenize("create myEnum as enum ('v1', 'v2');")
-      expect(result.errors).toHaveLength(0)
-      expect(result.tokens.map((t) => t.tokenType.name)).toEqual([
-        'CreateTok',
-        'Identifier',
-        'AsTok',
-        'EnumTok',
-        'LParen',
-        'StringLiteral',
-        'Comma',
-        'StringLiteral',
-        'RParen',
-        'Semicolon',
       ])
     })
 
@@ -118,10 +93,10 @@ describe('SpexLexer', () => {
 
     it('should handle keywords with word boundary', () => {
       const result = SpexLexer.tokenize(
-        'createfoo foocreate asfoo fooas fooselect selectfoo foofrom fromfoo generatefoo foogenerate importfoo fooimport packagefoo fopackage executablefoo foexecutable modulefoo fomodule conceptfoo fooconcept environmentfoo fooenvironment realizefoo foorealize info fooin'
+        'createfoo foocreate asfoo fooas fooselect selectfoo foofrom fromfoo generatefoo foogenerate importfoo fooimport artifactfoo fooartifact conceptfoo fooconcept environmentfoo fooenvironment realizefoo foorealize info fooin'
       )
       expect(result.errors).toHaveLength(0)
-      expect(result.tokens.map((t) => t.tokenType.name)).toEqual(Array(26).fill('Identifier'))
+      expect(result.tokens.map((t) => t.tokenType.name)).toEqual(Array(22).fill('Identifier'))
     })
 
     it('should tokenize the concept and environment base types', () => {
@@ -131,6 +106,12 @@ describe('SpexLexer', () => {
         'ConceptTok',
         'EnvironmentTok',
       ])
+    })
+
+    it('should tokenize the artifact base type', () => {
+      const result = SpexLexer.tokenize('artifact')
+      expect(result.errors).toHaveLength(0)
+      expect(result.tokens.map((t) => t.tokenType.name)).toEqual(['ArtifactTok'])
     })
 
     it('should tokenize the text between braces', () => {

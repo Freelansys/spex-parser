@@ -4,18 +4,15 @@ import type {
   ObjectDeclaration,
   ImportDeclaration,
   GenerateDeclaration,
-  PackageDeclaration,
   RealizeDeclaration,
   IncludeDeclaration,
-  ExponentialPattern,
-  EnumObject,
   Constraint,
 } from '../src/ast.js'
 
 describe('SpexParserVisitor', () => {
   describe('lexing errors', () => {
     it('should throw on unexpected characters', () => {
-      expect(() => parseToAst('package module spex-parser as Main;')).toThrow(
+      expect(() => parseToAst('create Foo as spex-parser;')).toThrow(
         'Lexing errors: unexpected character: ->-<'
       )
     })
@@ -114,6 +111,7 @@ describe('SpexParserVisitor', () => {
               kind: 'SubObject',
               base: { kind: 'NamedObject', name: 'Number' },
               constraint: {
+                type: 'NaturalLanguage',
                 raw: 'value is positive',
                 parts: [{ kind: 'ConstraintText', text: 'value is positive' }],
               },
@@ -203,6 +201,7 @@ describe('SpexParserVisitor', () => {
             kind: 'SubObject',
             base: { kind: 'NamedObject', name: 'Number' },
             constraint: {
+              type: 'NaturalLanguage',
               raw: 'value is positive',
               parts: [{ kind: 'ConstraintText', text: 'value is positive' }],
             },
@@ -211,6 +210,7 @@ describe('SpexParserVisitor', () => {
             kind: 'SubObject',
             base: { kind: 'NamedObject', name: 'Number' },
             constraint: {
+              type: 'NaturalLanguage',
               raw: 'value is positive',
               parts: [{ kind: 'ConstraintText', text: 'value is positive' }],
             },
@@ -230,6 +230,7 @@ describe('SpexParserVisitor', () => {
           kind: 'SubObject',
           base: { kind: 'NamedObject', name: 'Number' },
           constraint: {
+            type: 'NaturalLanguage',
             raw: 'isPositive',
             parts: [{ kind: 'ConstraintText', text: 'isPositive' }],
           },
@@ -253,6 +254,7 @@ describe('SpexParserVisitor', () => {
             right: { kind: 'NamedObject', name: 'TypeScript' },
           },
           constraint: {
+            type: 'NaturalLanguage',
             raw: 'is an express app',
             parts: [{ kind: 'ConstraintText', text: 'is an express app' }],
           },
@@ -271,6 +273,7 @@ describe('SpexParserVisitor', () => {
           kind: 'SubObject',
           base: { kind: 'NamedObject', name: 'Number' },
           constraint: {
+            type: 'NaturalLanguage',
             raw: 'the number is positive',
             parts: [{ kind: 'ConstraintText', text: 'the number is positive' }],
           },
@@ -296,9 +299,10 @@ describe('SpexParserVisitor', () => {
             },
           },
           constraint: {
+            type: 'NaturalLanguage',
             raw: '@n is positive',
             parts: [
-              { kind: 'ConstraintReference', name: 'n' },
+              { kind: 'ReferenceDirective', name: 'n' },
               { kind: 'ConstraintText', text: ' is positive' },
             ],
           },
@@ -328,6 +332,7 @@ describe('SpexParserVisitor', () => {
             base: { kind: 'NamedObject', name: 'Bool' },
           },
           constraint: {
+            type: 'NaturalLanguage',
             raw: 'logs the given input',
             parts: [{ kind: 'ConstraintText', text: 'logs the given input' }],
           },
@@ -349,11 +354,13 @@ describe('SpexParserVisitor', () => {
             kind: 'SubObject',
             base: { kind: 'NamedObject', name: 'Number' },
             constraint: {
+              type: 'NaturalLanguage',
               raw: 'value is positive',
               parts: [{ kind: 'ConstraintText', text: 'value is positive' }],
             },
           },
           constraint: {
+            type: 'NaturalLanguage',
             raw: 'value is odd',
             parts: [{ kind: 'ConstraintText', text: 'value is odd' }],
           },
@@ -441,6 +448,20 @@ describe('SpexParserVisitor', () => {
         object: {
           kind: 'NamedObject',
           name: 'environment',
+        },
+      })
+    })
+
+    it('should convert basic object artifact to AST', () => {
+      const testCase = 'create MyObject as artifact;'
+      const ast = parseToAst(testCase)
+      const decl = ast.declarations[0] as ObjectDeclaration
+      expect(decl).toEqual({
+        kind: 'ObjectDeclaration',
+        name: 'MyObject',
+        object: {
+          kind: 'NamedObject',
+          name: 'artifact',
         },
       })
     })
@@ -566,76 +587,18 @@ describe('SpexParserVisitor', () => {
       expect(decl).toEqual({
         kind: 'GenerateDeclaration',
         name: 'Main',
+        environment: { kind: 'NamedObject', name: 'environment' },
       })
     })
-  })
 
-  describe('enum object', () => {
-    it('should convert enum object declaration to AST', () => {
-      const testCase = "create myEnum as enum ('v1', 'v2');"
+    it('should convert generate declaration with an environment to AST', () => {
+      const testCase = 'generate Main in Python;'
       const ast = parseToAst(testCase)
-      const decl = ast.declarations[0] as ObjectDeclaration
+      const decl = ast.declarations[0] as GenerateDeclaration
       expect(decl).toEqual({
-        kind: 'ObjectDeclaration',
-        name: 'myEnum',
-        object: {
-          kind: 'EnumObject',
-          values: ['v1', 'v2'],
-        },
-      })
-    })
-
-    it('should convert single-value enum object to AST', () => {
-      const testCase = "create Status as enum ('ACTIVE');"
-      const ast = parseToAst(testCase)
-      const decl = ast.declarations[0] as ObjectDeclaration
-      expect(decl).toEqual({
-        kind: 'ObjectDeclaration',
-        name: 'Status',
-        object: {
-          kind: 'EnumObject',
-          values: ['ACTIVE'],
-        },
-      })
-    })
-
-    it('should convert enum object with mixed quote values to AST', () => {
-      const testCase = "create myEnum as enum (\"v1\", 'v2');"
-      const ast = parseToAst(testCase)
-      const decl = ast.declarations[0] as ObjectDeclaration
-      expect(decl).toEqual({
-        kind: 'ObjectDeclaration',
-        name: 'myEnum',
-        object: {
-          kind: 'EnumObject',
-          values: ['v1', 'v2'],
-        },
-      })
-    })
-
-    it('should convert enum object with escaped values to AST', () => {
-      const testCase = "create myEnum as enum ('it\\'s', \"a \\\"b\\\"\", 'a\\\\b');"
-      const ast = parseToAst(testCase)
-      const decl = ast.declarations[0] as ObjectDeclaration
-      expect(decl).toEqual({
-        kind: 'ObjectDeclaration',
-        name: 'myEnum',
-        object: {
-          kind: 'EnumObject',
-          values: ["it's", 'a "b"', 'a\\b'],
-        },
-      })
-    })
-
-    it('should convert enum object inside a product object to AST', () => {
-      const testCase = "create Config as (kind: enum ('a', 'b'));"
-      const ast = parseToAst(testCase)
-      const decl = ast.declarations[0] as ObjectDeclaration
-      expect(decl.object).toEqual({
-        kind: 'ProductObject',
-        fields: {
-          kind: { kind: 'EnumObject', values: ['a', 'b'] },
-        },
+        kind: 'GenerateDeclaration',
+        name: 'Main',
+        environment: { kind: 'NamedObject', name: 'Python' },
       })
     })
   })
@@ -1069,7 +1032,7 @@ describe('SpexParserVisitor', () => {
       expect(result).toEqual<Constraint>({
         raw: '@n is positive',
         parts: [
-          { kind: 'ConstraintReference', name: 'n' },
+          { kind: 'ReferenceDirective', name: 'n' },
           { kind: 'ConstraintText', text: ' is positive' },
         ],
       })
@@ -1081,7 +1044,7 @@ describe('SpexParserVisitor', () => {
         raw: 'use @path for storage',
         parts: [
           { kind: 'ConstraintText', text: 'use ' },
-          { kind: 'ConstraintReference', name: 'path' },
+          { kind: 'ReferenceDirective', name: 'path' },
           { kind: 'ConstraintText', text: ' for storage' },
         ],
       })
@@ -1093,9 +1056,9 @@ describe('SpexParserVisitor', () => {
         raw: 'return @z.real^2 + @z.imag^2',
         parts: [
           { kind: 'ConstraintText', text: 'return ' },
-          { kind: 'ConstraintReference', name: 'z.real' },
+          { kind: 'ReferenceDirective', name: 'z.real' },
           { kind: 'ConstraintText', text: '^2 + ' },
-          { kind: 'ConstraintReference', name: 'z.imag' },
+          { kind: 'ReferenceDirective', name: 'z.imag' },
           { kind: 'ConstraintText', text: '^2' },
         ],
       })
@@ -1107,9 +1070,9 @@ describe('SpexParserVisitor', () => {
         raw: 'call @LoadTodos using @path',
         parts: [
           { kind: 'ConstraintText', text: 'call ' },
-          { kind: 'ConstraintReference', name: 'LoadTodos' },
+          { kind: 'ReferenceDirective', name: 'LoadTodos' },
           { kind: 'ConstraintText', text: ' using ' },
-          { kind: 'ConstraintReference', name: 'path' },
+          { kind: 'ReferenceDirective', name: 'path' },
         ],
       })
     })
@@ -1119,7 +1082,7 @@ describe('SpexParserVisitor', () => {
       expect(result).toEqual<Constraint>({
         raw: '@validate the input',
         parts: [
-          { kind: 'ConstraintReference', name: 'validate' },
+          { kind: 'ReferenceDirective', name: 'validate' },
           { kind: 'ConstraintText', text: ' the input' },
         ],
       })
@@ -1138,7 +1101,7 @@ describe('SpexParserVisitor', () => {
       expect(result).toEqual<Constraint>({
         raw: '@todo_item is valid',
         parts: [
-          { kind: 'ConstraintReference', name: 'todo_item' },
+          { kind: 'ReferenceDirective', name: 'todo_item' },
           { kind: 'ConstraintText', text: ' is valid' },
         ],
       })
@@ -1167,6 +1130,7 @@ describe('SpexParserVisitor', () => {
         kind: 'SubObject',
         base: { kind: 'NamedObject', name: 'string' },
         constraint: {
+          type: 'NaturalLanguage',
           raw: 'are valid -- like emails',
           parts: [{ kind: 'ConstraintText', text: 'are valid -- like emails' }],
         },
@@ -1181,10 +1145,11 @@ describe('SpexParserVisitor', () => {
         kind: 'SubObject',
         base: { kind: 'NamedObject', name: 'string' },
         constraint: {
+          type: 'NaturalLanguage',
           raw: 'match /* strict */ @pattern',
           parts: [
             { kind: 'ConstraintText', text: 'match /* strict */ ' },
-            { kind: 'ConstraintReference', name: 'pattern' },
+            { kind: 'ReferenceDirective', name: 'pattern' },
           ],
         },
       })
@@ -1200,6 +1165,7 @@ describe('SpexParserVisitor', () => {
         kind: 'SubObject',
         base: { kind: 'NamedObject', name: 'string' },
         constraint: {
+          type: 'NaturalLanguage',
           raw: 'end with }',
           parts: [{ kind: 'ConstraintText', text: 'end with }' }],
         },
@@ -1214,6 +1180,7 @@ describe('SpexParserVisitor', () => {
         kind: 'SubObject',
         base: { kind: 'NamedObject', name: 'string' },
         constraint: {
+          type: 'NaturalLanguage',
           raw: 'match {a}',
           parts: [{ kind: 'ConstraintText', text: 'match {a}' }],
         },
@@ -1228,6 +1195,7 @@ describe('SpexParserVisitor', () => {
         kind: 'SubObject',
         base: { kind: 'NamedObject', name: 'string' },
         constraint: {
+          type: 'NaturalLanguage',
           raw: 'paths use \\',
           parts: [{ kind: 'ConstraintText', text: 'paths use \\' }],
         },
@@ -1242,108 +1210,14 @@ describe('SpexParserVisitor', () => {
         kind: 'SubObject',
         base: { kind: 'NamedObject', name: 'string' },
         constraint: {
+          type: 'NaturalLanguage',
           raw: 'call @foo with }',
           parts: [
             { kind: 'ConstraintText', text: 'call ' },
-            { kind: 'ConstraintReference', name: 'foo' },
+            { kind: 'ReferenceDirective', name: 'foo' },
             { kind: 'ConstraintText', text: ' with }' },
           ],
         },
-      })
-    })
-  })
-
-  describe('package declaration', () => {
-    it('should convert package executable declaration to AST', () => {
-      const testCase = 'package executable myapp as Main in Python;'
-      const ast = parseToAst(testCase)
-      const decl = ast.declarations[0] as PackageDeclaration
-      expect(decl).toEqual({
-        kind: 'PackageDeclaration',
-        packageType: 'EXECUTABLE',
-        name: 'myapp',
-        objectName: { kind: 'NamedObject', name: 'Main' },
-        environment: { kind: 'NamedObject', name: 'Python' },
-      })
-    })
-
-    it('should convert package module declaration to AST', () => {
-      const testCase = 'package module mylib as utils in Node;'
-      const ast = parseToAst(testCase)
-      const decl = ast.declarations[0] as PackageDeclaration
-      expect(decl).toEqual({
-        kind: 'PackageDeclaration',
-        packageType: 'MODULE',
-        name: 'mylib',
-        objectName: { kind: 'NamedObject', name: 'utils' },
-        environment: { kind: 'NamedObject', name: 'Node' },
-      })
-    })
-
-    it('should convert package executable with complex object to AST', () => {
-      const testCase = 'package executable cli as (path: string) -> unit in Python;'
-      const ast = parseToAst(testCase)
-      const decl = ast.declarations[0] as PackageDeclaration
-      expect(decl).toEqual({
-        kind: 'PackageDeclaration',
-        packageType: 'EXECUTABLE',
-        name: 'cli',
-        objectName: {
-          kind: 'ExponentialObject',
-          exponent: {
-            kind: 'ProductObject',
-            fields: { path: { kind: 'NamedObject', name: 'string' } },
-          },
-          base: { kind: 'NamedObject', name: 'unit' },
-        },
-        environment: { kind: 'NamedObject', name: 'Python' },
-      })
-    })
-
-    it('should convert package executable with dotted name to AST', () => {
-      const testCase = 'package executable myapp as app.Main in Python;'
-      const ast = parseToAst(testCase)
-      const decl = ast.declarations[0] as PackageDeclaration
-      expect(decl).toEqual({
-        kind: 'PackageDeclaration',
-        packageType: 'EXECUTABLE',
-        name: 'myapp',
-        objectName: { kind: 'NamedObject', name: 'app.Main' },
-        environment: { kind: 'NamedObject', name: 'Python' },
-      })
-    })
-
-    it('should convert package executable with array type to AST', () => {
-      const testCase = 'package module mylib as string[] in Python;'
-      const ast = parseToAst(testCase)
-      const decl = ast.declarations[0] as PackageDeclaration
-      expect(decl).toEqual({
-        kind: 'PackageDeclaration',
-        packageType: 'MODULE',
-        name: 'mylib',
-        objectName: { kind: 'ArrayObject', base: { kind: 'NamedObject', name: 'string' } },
-        environment: { kind: 'NamedObject', name: 'Python' },
-      })
-    })
-
-    it('should convert mixed declarations with package to AST', () => {
-      const testCase =
-        'create Main as Number;\npackage executable myapp as Main in Python;'
-      const ast = parseToAst(testCase)
-      expect(ast.declarations).toHaveLength(2)
-      const createDecl = ast.declarations[0] as ObjectDeclaration
-      expect(createDecl).toEqual({
-        kind: 'ObjectDeclaration',
-        name: 'Main',
-        object: { kind: 'NamedObject', name: 'Number' },
-      })
-      const packageDecl = ast.declarations[1] as PackageDeclaration
-      expect(packageDecl).toEqual({
-        kind: 'PackageDeclaration',
-        packageType: 'EXECUTABLE',
-        name: 'myapp',
-        objectName: { kind: 'NamedObject', name: 'Main' },
-        environment: { kind: 'NamedObject', name: 'Python' },
       })
     })
   })
@@ -1466,103 +1340,76 @@ describe('SpexParserVisitor', () => {
     })
   })
 
-  describe('lambda object', () => {
-    it('should convert lambda with product base to AST', () => {
-      const testCase = 'create sum as lambda (a: number, b: number) -> number ```python\nreturn a + b\n```;'
+  describe('subobject with structured and code constraints', () => {
+    it('should convert subobject with a structured constraint to AST', () => {
+      const testCase = 'create double as from number -> number select ```\nreturn n * 2\n```;'
       const ast = parseToAst(testCase)
       const decl = ast.declarations[0] as ObjectDeclaration
-      const lambda = decl.object as ExponentialPattern
-      expect(lambda).toEqual({
-        kind: 'ExponentialPattern',
-        base: { kind: 'NamedObject', name: 'number' },
-        exponent: {
-          kind: 'ProductObject',
-          fields: {
-            a: { kind: 'NamedObject', name: 'number' },
-            b: { kind: 'NamedObject', name: 'number' },
-          },
+      expect(decl.object).toEqual({
+        kind: 'SubObject',
+        base: {
+          kind: 'ExponentialObject',
+          exponent: { kind: 'NamedObject', name: 'number' },
+          base: { kind: 'NamedObject', name: 'number' },
         },
-        language: 'python',
-        body: 'return a + b',
-        patterns: [],
+        constraint: {
+          type: 'Structured',
+          raw: 'return n * 2',
+          parts: [{ kind: 'ConstraintText', text: 'return n * 2' }],
+        },
       })
     })
 
-    it('should convert lambda with named base to AST', () => {
-      const testCase = 'create double as lambda number -> number ```python\nreturn @n * 2\n```;'
+    it('should convert subobject with a code constraint to AST', () => {
+      const testCase = 'create double as from number -> number select ```python\nreturn @n * 2\n```;'
       const ast = parseToAst(testCase)
       const decl = ast.declarations[0] as ObjectDeclaration
-      const lambda = decl.object as ExponentialPattern
-      expect(lambda).toEqual({
-        kind: 'ExponentialPattern',
-        base: { kind: 'NamedObject', name: 'number' },
-        exponent: { kind: 'NamedObject', name: 'number' },
-        language: 'python',
-        body: 'return @n * 2',
-        patterns: [],
+      expect(decl.object).toEqual({
+        kind: 'SubObject',
+        base: {
+          kind: 'ExponentialObject',
+          exponent: { kind: 'NamedObject', name: 'number' },
+          base: { kind: 'NamedObject', name: 'number' },
+        },
+        constraint: {
+          type: 'Code',
+          language: 'python',
+          body: 'return @n * 2',
+          parts: [
+            { kind: 'ConstraintText', text: 'return ' },
+            { kind: 'ReferenceDirective', name: 'n' },
+            { kind: 'ConstraintText', text: ' * 2' },
+          ],
+        },
       })
     })
 
-    it('should extract pattern blocks from lambda body', () => {
+    it('should convert a code constraint in a product field to AST', () => {
       const testCase =
-        'create transform as lambda (x: number) -> number ```python\nif @x > 0:\n  @{return sin(@x)}\nelse:\n  @{return cos(@x)}\n```;'
-      const ast = parseToAst(testCase)
-      const decl = ast.declarations[0] as ObjectDeclaration
-      const lambda = decl.object as ExponentialPattern
-      expect(lambda.patterns).toHaveLength(2)
-      expect(lambda.patterns[0]).toEqual({
-        raw: 'return sin(@x)',
-        parts: [
-          { kind: 'ConstraintText', text: 'return sin(' },
-          { kind: 'ConstraintReference', name: 'x' },
-          { kind: 'ConstraintText', text: ')' },
-        ],
-        start: expect.any(Number),
-        end: expect.any(Number),
-      })
-      expect(lambda.patterns[1]).toEqual({
-        raw: 'return cos(@x)',
-        parts: [
-          { kind: 'ConstraintText', text: 'return cos(' },
-          { kind: 'ConstraintReference', name: 'x' },
-          { kind: 'ConstraintText', text: ')' },
-        ],
-        start: expect.any(Number),
-        end: expect.any(Number),
-      })
-    })
-
-    it('should track correct positions for multiple pattern blocks', () => {
-      const testCase =
-        'create transform as lambda (x: number) -> number ```python\nif @x > 0:\n  @{return sin(@x)}\nelse:\n  @{return cos(@x)}\n```;'
-      const ast = parseToAst(testCase)
-      const decl = ast.declarations[0] as ObjectDeclaration
-      const lambda = decl.object as ExponentialPattern
-      expect(lambda.patterns[0].start).toBeLessThan(lambda.patterns[0].end)
-      expect(lambda.patterns[1].start).toBeGreaterThan(lambda.patterns[0].end)
-      expect(lambda.patterns[1].start).toBeLessThan(lambda.patterns[1].end)
-    })
-
-    it('should convert lambda in product field to AST', () => {
-      const testCase =
-        'create Config as (handler: lambda (x: string) -> string ```typescript\nreturn x.toUpperCase();\n```, port: number);'
+        'create Config as (handler: from (x: string) -> string select ```typescript\nreturn x.toUpperCase();\n```, port: number);'
       const ast = parseToAst(testCase)
       const decl = ast.declarations[0] as ObjectDeclaration
       expect(decl.object).toEqual({
         kind: 'ProductObject',
         fields: {
           handler: {
-            kind: 'ExponentialPattern',
-            base: { kind: 'NamedObject', name: 'string' },
-            exponent: {
-              kind: 'ProductObject',
-              fields: {
-                x: { kind: 'NamedObject', name: 'string' },
+            kind: 'SubObject',
+            base: {
+              kind: 'ExponentialObject',
+              exponent: {
+                kind: 'ProductObject',
+                fields: {
+                  x: { kind: 'NamedObject', name: 'string' },
+                },
               },
+              base: { kind: 'NamedObject', name: 'string' },
             },
-            language: 'typescript',
-            body: 'return x.toUpperCase();',
-            patterns: [],
+            constraint: {
+              type: 'Code',
+              language: 'typescript',
+              body: 'return x.toUpperCase();',
+              parts: [{ kind: 'ConstraintText', text: 'return x.toUpperCase();' }],
+            },
           },
           port: { kind: 'NamedObject', name: 'number' },
         },

@@ -96,6 +96,19 @@ describe('SpexParser', () => {
       expect(parser.errors).toHaveLength(0)
     })
 
+    it('should parse subobject declaration with a structured constraint', () => {
+      const testCase = 'create double as from number -> number select ```\nreturn n * 2\n```;'
+      const { parser } = parseInput(testCase)
+      expect(parser.errors).toHaveLength(0)
+    })
+
+    it('should parse subobject declaration with a code constraint', () => {
+      const testCase =
+        'create double as from number -> number select ```python\nreturn @n * 2\n```;'
+      const { parser } = parseInput(testCase)
+      expect(parser.errors).toHaveLength(0)
+    })
+
     it('should parse subobject declaration with a set operation base', () => {
       const testCase =
         'create MySubobject as from Web intersect TypeScript select { is an express app };'
@@ -164,6 +177,12 @@ describe('SpexParser', () => {
       expect(parser.errors).toHaveLength(0)
     })
 
+    it('should parse basic object artifact', () => {
+      const testCase = 'create MyObject as artifact;'
+      const { parser } = parseInput(testCase)
+      expect(parser.errors).toHaveLength(0)
+    })
+
     it('should parse basic objects in product fields', () => {
       const testCase = 'create Config as (name: string, count: number, active: bool);'
       const { parser } = parseInput(testCase)
@@ -205,6 +224,12 @@ describe('SpexParser', () => {
       const { parser } = parseInput(testCase)
       expect(parser.errors).not.toHaveLength(0)
     })
+
+    it('should not allow overriding basic object artifact', () => {
+      const testCase = 'create artifact as Number;'
+      const { parser } = parseInput(testCase)
+      expect(parser.errors).not.toHaveLength(0)
+    })
   })
 
   describe('import declaration', () => {
@@ -233,73 +258,23 @@ describe('SpexParser', () => {
       const { parser } = parseInput(testCase)
       expect(parser.errors).toHaveLength(0)
     })
-  })
 
-  describe('enum object', () => {
-    it('should parse enum object declaration', () => {
-      const testCase = "create myEnum as enum ('v1', 'v2');"
+    it('should parse generate declaration with an environment', () => {
+      const testCase = 'generate Main in Python;'
       const { parser } = parseInput(testCase)
       expect(parser.errors).toHaveLength(0)
     })
 
-    it('should parse enum object declaration case-insensitively', () => {
-      const testCase = "CREATE myEnum AS ENUM ('v1', 'v2');"
+    it('should parse generate declaration with a dotted environment', () => {
+      const testCase = 'generate Main in dev.Linux;'
       const { parser } = parseInput(testCase)
       expect(parser.errors).toHaveLength(0)
     })
 
-    it('should parse single-value enum object', () => {
-      const testCase = "create Status as enum ('ACTIVE');"
+    it('should parse generate declaration with an environment subobject', () => {
+      const testCase = 'generate Main in from environment select { python };'
       const { parser } = parseInput(testCase)
       expect(parser.errors).toHaveLength(0)
-    })
-
-    it('should parse enum object with double quoted values', () => {
-      const testCase = 'create myEnum as enum ("v1", "v2");'
-      const { parser } = parseInput(testCase)
-      expect(parser.errors).toHaveLength(0)
-    })
-
-    it('should parse enum object with mixed quote values', () => {
-      const testCase = "create myEnum as enum (\"v1\", 'v2');"
-      const { parser } = parseInput(testCase)
-      expect(parser.errors).toHaveLength(0)
-    })
-
-    it('should parse enum object with escaped values', () => {
-      const testCase = "create myEnum as enum ('it\\'s');"
-      const { parser } = parseInput(testCase)
-      expect(parser.errors).toHaveLength(0)
-    })
-
-    it('should parse enum object inside a product object', () => {
-      const testCase = "create Config as (kind: enum ('a', 'b'));"
-      const { parser } = parseInput(testCase)
-      expect(parser.errors).toHaveLength(0)
-    })
-
-    it('should parse array of enum object', () => {
-      const testCase = "create myEnum as enum ('a', 'b')[];"
-      const { parser } = parseInput(testCase)
-      expect(parser.errors).toHaveLength(0)
-    })
-
-    it('should not parse enum object without values', () => {
-      const testCase = 'create myEnum as enum ();'
-      const { parser } = parseInput(testCase)
-      expect(parser.errors).not.toHaveLength(0)
-    })
-
-    it('should not parse enum object with a trailing comma', () => {
-      const testCase = "create myEnum as enum ('v1',);"
-      const { parser } = parseInput(testCase)
-      expect(parser.errors).not.toHaveLength(0)
-    })
-
-    it('should not parse enum object without parentheses', () => {
-      const testCase = 'create myEnum as enum;'
-      const { parser } = parseInput(testCase)
-      expect(parser.errors).not.toHaveLength(0)
     })
   })
 
@@ -507,76 +482,6 @@ describe('SpexParser', () => {
     })
   })
 
-  describe('package declaration', () => {
-    it('should parse package executable declaration', () => {
-      const testCase = 'package executable myapp as Main in Python;'
-      const { parser } = parseInput(testCase)
-      expect(parser.errors).toHaveLength(0)
-    })
-
-    it('should parse package module declaration', () => {
-      const testCase = 'package module mylib as utils in Node;'
-      const { parser } = parseInput(testCase)
-      expect(parser.errors).toHaveLength(0)
-    })
-
-    it('should parse package executable with exponential object', () => {
-      const testCase = 'package executable cli as (path: string) -> unit in Python;'
-      const { parser } = parseInput(testCase)
-      expect(parser.errors).toHaveLength(0)
-    })
-
-    it('should parse package executable with dotted name', () => {
-      const testCase = 'package executable myapp as app.Main in Python;'
-      const { parser } = parseInput(testCase)
-      expect(parser.errors).toHaveLength(0)
-    })
-
-    it('should parse package module with array type', () => {
-      const testCase = 'package module mylib as string[] in Python;'
-      const { parser } = parseInput(testCase)
-      expect(parser.errors).toHaveLength(0)
-    })
-
-    it('should parse package executable with product type', () => {
-      const testCase = 'package module mylib as (name: string, count: number) in Python;'
-      const { parser } = parseInput(testCase)
-      expect(parser.errors).toHaveLength(0)
-    })
-
-    it('should parse package executable with subobject', () => {
-      const testCase =
-        'package executable myapp as from string select { is a valid command } in Python;'
-      const { parser } = parseInput(testCase)
-      expect(parser.errors).toHaveLength(0)
-    })
-
-    it('should parse package declaration case-insensitively', () => {
-      const testCase = 'PACKAGE EXECUTABLE myapp AS Main IN Python;'
-      const { parser } = parseInput(testCase)
-      expect(parser.errors).toHaveLength(0)
-    })
-
-    it('should parse mixed package and generate declarations', () => {
-      const testCase = 'package executable myapp as Main in Python;\ngenerate Main;'
-      const { parser } = parseInput(testCase)
-      expect(parser.errors).toHaveLength(0)
-    })
-
-    it('should parse package declaration with complex nested type', () => {
-      const testCase =
-        'package module mylib as from (x: number, y: number) -> number select { computes distance } in Node;'
-      const { parser } = parseInput(testCase)
-      expect(parser.errors).toHaveLength(0)
-    })
-
-    it('should parse package with complex environment object', () => {
-      const testCase = 'package executable myapp as Main in from environment select { python };'
-      const { parser } = parseInput(testCase)
-      expect(parser.errors).toHaveLength(0)
-    })
-  })
-
   describe('comments', () => {
     it('should parse declarations separated by single-line comments', () => {
       const testCase = `
@@ -724,52 +629,6 @@ describe('SpexParser', () => {
 
     it('should not parse include without name', () => {
       const testCase = 'include "config.json" as ;'
-      const { parser } = parseInput(testCase)
-      expect(parser.errors).not.toHaveLength(0)
-    })
-  })
-
-  describe('lambda object', () => {
-    it('should parse lambda with product base', () => {
-      const testCase = 'create sum as lambda (a: number, b: number) -> number ```python\nreturn a + b\n```;'
-      const { parser } = parseInput(testCase)
-      expect(parser.errors).toHaveLength(0)
-    })
-
-    it('should parse lambda with named base', () => {
-      const testCase = 'create double as lambda number -> number ```python\nreturn @n * 2\n```;'
-      const { parser } = parseInput(testCase)
-      expect(parser.errors).toHaveLength(0)
-    })
-
-    it('should parse lambda case-insensitively', () => {
-      const testCase = 'create sum as LAMBDA (a: number) -> number ```python\nreturn @a\n```;'
-      const { parser } = parseInput(testCase)
-      expect(parser.errors).toHaveLength(0)
-    })
-
-    it('should parse lambda with pattern blocks', () => {
-      const testCase =
-        'create transform as lambda (x: number) -> number ```python\nif @x > 0:\n  @{return sin(@x)}\nelse:\n  @{return cos(@x)}\n```;'
-      const { parser } = parseInput(testCase)
-      expect(parser.errors).toHaveLength(0)
-    })
-
-    it('should parse lambda in product field', () => {
-      const testCase =
-        'create Config as (handler: lambda (x: string) -> string ```typescript\nreturn x.toUpperCase();\n```, port: number);'
-      const { parser } = parseInput(testCase)
-      expect(parser.errors).toHaveLength(0)
-    })
-
-    it('should not parse lambda without language', () => {
-      const testCase = 'create sum as lambda (a: number) -> number ```\nreturn @a\n```;'
-      const { parser } = parseInput(testCase)
-      expect(parser.errors).not.toHaveLength(0)
-    })
-
-    it('should not parse lambda without code block', () => {
-      const testCase = 'create sum as lambda (a: number) -> number;'
       const { parser } = parseInput(testCase)
       expect(parser.errors).not.toHaveLength(0)
     })

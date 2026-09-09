@@ -43,22 +43,6 @@ export const ImportTok = createToken({
   name: 'ImportTok',
   pattern: /import\b/i,
 })
-export const PackageTok = createToken({
-  name: 'PackageTok',
-  pattern: /package\b/i,
-})
-export const ExecutableTok = createToken({
-  name: 'ExecutableTok',
-  pattern: /executable\b/i,
-})
-export const ModuleTok = createToken({
-  name: 'ModuleTok',
-  pattern: /module\b/i,
-})
-export const EnumTok = createToken({
-  name: 'EnumTok',
-  pattern: /enum\b/i,
-})
 export const UnionTok = createToken({
   name: 'UnionTok',
   pattern: /union\b/i,
@@ -82,10 +66,6 @@ export const InTok = createToken({
 export const IncludeTok = createToken({
   name: 'IncludeTok',
   pattern: /include\b/i,
-})
-export const LambdaTok = createToken({
-  name: 'LambdaTok',
-  pattern: /lambda\b/i,
 })
 
 // Symbols
@@ -151,7 +131,7 @@ export const PatternLiteral = createToken({
   },
 })
 
-// Code block: ```language\n...content...```
+// Code block: ```\n...content...``` or ```language\n...content...```
 export const CodeBlock = createToken({
   name: 'CodeBlock',
   line_breaks: true,
@@ -159,11 +139,11 @@ export const CodeBlock = createToken({
     if (text[startOffset] !== '`' || text[startOffset + 1] !== '`' || text[startOffset + 2] !== '`')
       return null
     let i = startOffset + 3
-    // require at least one language identifier character
-    if (i >= text.length || !/[a-zA-Z0-9_]/.test(text[i]!)) return null
+    // optional language identifier on the opening fence line
     const langStart = i
     while (i < text.length && text[i] !== '\n' && text[i] !== '\r') i++
-    if (i === langStart) return null // no language identifier
+    const language = text.slice(langStart, i).trim()
+    if (language !== '' && !/^[a-zA-Z0-9_]+$/.test(language)) return null
     if (i >= text.length) return null
     // skip line ending
     if (text[i] === '\r' && text[i + 1] === '\n') i += 2
@@ -201,6 +181,20 @@ export const FalseTok = createToken({
   pattern: /false\b/i,
 })
 
+// Base objects (native types)
+export const ArtifactTok = createToken({
+  name: 'ArtifactTok',
+  pattern: /artifact\b/i,
+})
+export const ConceptTok = createToken({
+  name: 'ConceptTok',
+  pattern: /concept\b/i,
+})
+export const EnvironmentTok = createToken({
+  name: 'EnvironmentTok',
+  pattern: /environment\b/i,
+})
+
 // Basic objects (native types)
 export const StringTok = createToken({
   name: 'StringTok',
@@ -217,14 +211,6 @@ export const BoolTok = createToken({
 export const UnitTok = createToken({
   name: 'UnitTok',
   pattern: /unit\b/i,
-})
-export const ConceptTok = createToken({
-  name: 'ConceptTok',
-  pattern: /concept\b/i,
-})
-export const EnvironmentTok = createToken({
-  name: 'EnvironmentTok',
-  pattern: /environment\b/i,
 })
 
 // Identifiers
@@ -244,17 +230,12 @@ export const allTokens = [
   SelectTok,
   GenerateTok,
   ImportTok,
-  PackageTok,
-  ExecutableTok,
-  ModuleTok,
-  EnumTok,
   UnionTok,
   IntersectTok,
   ExceptTok,
   RealizeTok,
   InTok,
   IncludeTok,
-  LambdaTok,
 
   ArrowTok,
   PipeTok,
@@ -276,12 +257,13 @@ export const allTokens = [
   PatternLiteral,
   CodeBlock,
 
+  ArtifactTok,
+  ConceptTok,
+  EnvironmentTok,
   StringTok,
   NumberTok,
   BoolTok,
   UnitTok,
-  ConceptTok,
-  EnvironmentTok,
 
   Identifier,
 ]

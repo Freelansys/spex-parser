@@ -107,5 +107,4 @@ realize TodoWeb as (
   main: FlaskTodoWeb
 ) in FlaskWebEnv;
 
-generate FlaskTodoWeb;
-package executable flasktodo as FlaskTodoWeb in FlaskWebEnv;
+generate TodoWeb in FlaskWebEnv;

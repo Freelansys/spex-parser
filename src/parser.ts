@@ -7,17 +7,12 @@ import {
   SelectTok,
   GenerateTok,
   ImportTok,
-  PackageTok,
-  ExecutableTok,
-  ModuleTok,
-  EnumTok,
   UnionTok,
   IntersectTok,
   ExceptTok,
   RealizeTok,
   InTok,
   IncludeTok,
-  LambdaTok,
   ArrowTok,
   PipeTok,
   SelectBlock,
@@ -40,6 +35,7 @@ import {
   NumberTok,
   BoolTok,
   UnitTok,
+  ArtifactTok,
   ConceptTok,
   EnvironmentTok,
 } from './lexer.js'
@@ -61,10 +57,6 @@ export class SpexParser extends CstParser {
       {
         GATE: this.BACKTRACK(this.realizeDeclaration),
         ALT: () => this.SUBRULE(this.realizeDeclaration),
-      },
-      {
-        GATE: this.BACKTRACK(this.packageDeclaration),
-        ALT: () => this.SUBRULE(this.packageDeclaration),
       },
       {
         GATE: this.BACKTRACK(this.objectDeclaration),
@@ -112,17 +104,6 @@ export class SpexParser extends CstParser {
     })
   })
 
-  private enumObject = this.RULE('enumObject', () => {
-    this.CONSUME(EnumTok)
-    this.CONSUME(LParen)
-    this.CONSUME(StringLiteral)
-    this.MANY(() => {
-      this.CONSUME(Comma)
-      this.CONSUME2(StringLiteral)
-    })
-    this.CONSUME(RParen)
-  })
-
   private literalObject = this.RULE('literalObject', () => {
     this.OR([
       { ALT: () => this.CONSUME(StringLiteral) },
@@ -146,14 +127,7 @@ export class SpexParser extends CstParser {
         ALT: () => this.SUBRULE(this.literalObject),
       },
       {
-        ALT: () => this.SUBRULE(this.enumObject),
-      },
-      {
         ALT: () => this.SUBRULE(this.patternObject),
-      },
-      {
-        GATE: this.BACKTRACK(this.lambdaObject),
-        ALT: () => this.SUBRULE(this.lambdaObject),
       },
       {
         GATE: this.BACKTRACK(this.subObject),
@@ -194,6 +168,7 @@ export class SpexParser extends CstParser {
       { ALT: () => this.CONSUME(NumberTok) },
       { ALT: () => this.CONSUME(BoolTok) },
       { ALT: () => this.CONSUME(UnitTok) },
+      { ALT: () => this.CONSUME(ArtifactTok) },
       { ALT: () => this.CONSUME(ConceptTok) },
       { ALT: () => this.CONSUME(EnvironmentTok) },
     ])
@@ -218,7 +193,7 @@ export class SpexParser extends CstParser {
     this.CONSUME(FromTok)
     this.SUBRULE(this.setObject, { LABEL: 'base' })
     this.CONSUME(SelectTok)
-    this.CONSUME(SelectBlock)
+    this.OR([{ ALT: () => this.CONSUME(SelectBlock) }, { ALT: () => this.CONSUME(CodeBlock) }])
   })
 
   private importDeclaration = this.RULE('importDeclaration', () => {
@@ -254,17 +229,10 @@ export class SpexParser extends CstParser {
   private generateDeclaration = this.RULE('generateDeclaration', () => {
     this.CONSUME(GenerateTok)
     this.CONSUME(Identifier)
-    this.CONSUME(Semicolon)
-  })
-
-  private packageDeclaration = this.RULE('packageDeclaration', () => {
-    this.CONSUME(PackageTok)
-    this.OR([{ ALT: () => this.CONSUME(ExecutableTok) }, { ALT: () => this.CONSUME(ModuleTok) }])
-    this.CONSUME(Identifier)
-    this.CONSUME(AsTok)
-    this.SUBRULE(this.setObject)
-    this.CONSUME(InTok)
-    this.SUBRULE2(this.setObject, { LABEL: 'environment' })
+    this.OPTION(() => {
+      this.CONSUME(InTok)
+      this.SUBRULE(this.setObject, { LABEL: 'environment' })
+    })
     this.CONSUME(Semicolon)
   })
 
@@ -286,13 +254,5 @@ export class SpexParser extends CstParser {
     this.CONSUME(AsTok)
     this.CONSUME(Identifier)
     this.CONSUME(Semicolon)
-  })
-
-  private lambdaObject = this.RULE('lambdaObject', () => {
-    this.CONSUME(LambdaTok)
-    this.SUBRULE(this.objectOperand, { LABEL: 'base' })
-    this.CONSUME(ArrowTok)
-    this.SUBRULE(this.setObject, { LABEL: 'exponent' })
-    this.CONSUME(CodeBlock)
   })
 }
