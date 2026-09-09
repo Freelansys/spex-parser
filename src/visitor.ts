@@ -46,7 +46,7 @@ export function parseConstraint(raw: string): Constraint {
     if (match.index > lastIndex) {
       parts.push({ kind: 'ConstraintText', text: raw.slice(lastIndex, match.index) })
     }
-    parts.push({ kind: 'ConstraintReference', name: match[1]! })
+    parts.push({ kind: 'ReferenceDirective', name: match[1]! })
     lastIndex = match.index + match[0].length
   }
 
@@ -82,6 +82,7 @@ function codeConstraint(image: string): SubObjectConstraint {
     type: 'Code',
     language,
     body,
+    parts: parseConstraint(body).parts,
   }
 }
 

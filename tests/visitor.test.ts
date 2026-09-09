@@ -303,7 +303,7 @@ describe('SpexParserVisitor', () => {
             type: 'NaturalLanguage',
             raw: '@n is positive',
             parts: [
-              { kind: 'ConstraintReference', name: 'n' },
+              { kind: 'ReferenceDirective', name: 'n' },
               { kind: 'ConstraintText', text: ' is positive' },
             ],
           },
@@ -1021,7 +1021,7 @@ describe('SpexParserVisitor', () => {
       expect(result).toEqual<Constraint>({
         raw: '@n is positive',
         parts: [
-          { kind: 'ConstraintReference', name: 'n' },
+          { kind: 'ReferenceDirective', name: 'n' },
           { kind: 'ConstraintText', text: ' is positive' },
         ],
       })
@@ -1033,7 +1033,7 @@ describe('SpexParserVisitor', () => {
         raw: 'use @path for storage',
         parts: [
           { kind: 'ConstraintText', text: 'use ' },
-          { kind: 'ConstraintReference', name: 'path' },
+          { kind: 'ReferenceDirective', name: 'path' },
           { kind: 'ConstraintText', text: ' for storage' },
         ],
       })
@@ -1045,9 +1045,9 @@ describe('SpexParserVisitor', () => {
         raw: 'return @z.real^2 + @z.imag^2',
         parts: [
           { kind: 'ConstraintText', text: 'return ' },
-          { kind: 'ConstraintReference', name: 'z.real' },
+          { kind: 'ReferenceDirective', name: 'z.real' },
           { kind: 'ConstraintText', text: '^2 + ' },
-          { kind: 'ConstraintReference', name: 'z.imag' },
+          { kind: 'ReferenceDirective', name: 'z.imag' },
           { kind: 'ConstraintText', text: '^2' },
         ],
       })
@@ -1059,9 +1059,9 @@ describe('SpexParserVisitor', () => {
         raw: 'call @LoadTodos using @path',
         parts: [
           { kind: 'ConstraintText', text: 'call ' },
-          { kind: 'ConstraintReference', name: 'LoadTodos' },
+          { kind: 'ReferenceDirective', name: 'LoadTodos' },
           { kind: 'ConstraintText', text: ' using ' },
-          { kind: 'ConstraintReference', name: 'path' },
+          { kind: 'ReferenceDirective', name: 'path' },
         ],
       })
     })
@@ -1071,7 +1071,7 @@ describe('SpexParserVisitor', () => {
       expect(result).toEqual<Constraint>({
         raw: '@validate the input',
         parts: [
-          { kind: 'ConstraintReference', name: 'validate' },
+          { kind: 'ReferenceDirective', name: 'validate' },
           { kind: 'ConstraintText', text: ' the input' },
         ],
       })
@@ -1090,7 +1090,7 @@ describe('SpexParserVisitor', () => {
       expect(result).toEqual<Constraint>({
         raw: '@todo_item is valid',
         parts: [
-          { kind: 'ConstraintReference', name: 'todo_item' },
+          { kind: 'ReferenceDirective', name: 'todo_item' },
           { kind: 'ConstraintText', text: ' is valid' },
         ],
       })
@@ -1138,7 +1138,7 @@ describe('SpexParserVisitor', () => {
           raw: 'match /* strict */ @pattern',
           parts: [
             { kind: 'ConstraintText', text: 'match /* strict */ ' },
-            { kind: 'ConstraintReference', name: 'pattern' },
+            { kind: 'ReferenceDirective', name: 'pattern' },
           ],
         },
       })
@@ -1203,7 +1203,7 @@ describe('SpexParserVisitor', () => {
           raw: 'call @foo with }',
           parts: [
             { kind: 'ConstraintText', text: 'call ' },
-            { kind: 'ConstraintReference', name: 'foo' },
+            { kind: 'ReferenceDirective', name: 'foo' },
             { kind: 'ConstraintText', text: ' with }' },
           ],
         },
@@ -1459,6 +1459,11 @@ describe('SpexParserVisitor', () => {
           type: 'Code',
           language: 'python',
           body: 'return @n * 2',
+          parts: [
+            { kind: 'ConstraintText', text: 'return ' },
+            { kind: 'ReferenceDirective', name: 'n' },
+            { kind: 'ConstraintText', text: ' * 2' },
+          ],
         },
       })
     })
@@ -1487,6 +1492,7 @@ describe('SpexParserVisitor', () => {
               type: 'Code',
               language: 'typescript',
               body: 'return x.toUpperCase();',
+              parts: [{ kind: 'ConstraintText', text: 'return x.toUpperCase();' }],
             },
           },
           port: { kind: 'NamedObject', name: 'number' },

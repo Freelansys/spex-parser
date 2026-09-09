@@ -33,6 +33,6 @@ export type {
   ConstraintType,
   SubObjectConstraint,
   ConstraintPart,
-  ConstraintReference,
+  ReferenceDirective,
   ConstraintText,
 } from './ast.js'

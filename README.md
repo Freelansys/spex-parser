@@ -379,6 +379,8 @@ if &number > 0 {
 
 Unlike natural language patterns, structured patterns are **(partially) provable**: during generation the produced artifact is checked against the pattern, and the provable parts are validated automatically.
 
+Calling an exponential in a structured or code constraint is the **only** method to provably add a function call to a generated artifact. Where a structured or code pattern calls an exponential object, the generated artifact provably contains that call. In a natural-language pattern the same mention is intent, not proof: it is honored when members are produced, but nothing mechanical guarantees it.
+
 **Generation directives** mark the positions in a structured or code pattern where unprovable code is generated. A generation directive is a comment starting with `gen:` followed by a natural-language description of what to generate. In the example below, the generated artifact must contain an `if` block that checks `x > 0`; the body of that block is a generation directive, so exactly what it computes is not provable from the pattern:
 
 ````spex
@@ -669,7 +671,7 @@ select {
 
 # Referencing
 
-Spex allows referencing other objects in patterns using `@` followed by the object name. The scope of a reference is determined using the same rules as in TypeScript.
+A `@ref` in a constraint — whether natural language, structured, or code — is a directive to bring the named object into the **context for generation**. It makes that object available to the generator while it produces members of the subobject. The scope of a `@ref` directive is determined using the same rules as in TypeScript.
 
 ```spex
 create Todo as
@@ -695,11 +697,11 @@ select {
 }
 ```
 
-The parser automatically extracts references from patterns into structured AST nodes, making it easy to analyze dependencies programmatically. Each pattern is parsed into a sequence of text segments and reference nodes:
+The parser automatically extracts `@ref` directives from every constraint kind into structured AST nodes (`ReferenceDirective`), making it easy to analyze dependencies programmatically. Each constraint is parsed into a sequence of text segments and directive nodes:
 
 ```spex
 "call @LoadTodos using @path"
-→ [text: "call ", ref: LoadTodos, text: " using ", ref: path]
+→ [text: "call ", directive: LoadTodos, text: " using ", directive: path]
 ```
 
 Use `.` to reference a member of a product object:
@@ -788,7 +790,7 @@ include "config.json" as config;
 include "images/logo.png" as logo;
 ```
 
-The address is a string literal pointing to a file or folder. The name becomes a first-class object in the current scope and can be referenced in patterns with `@`:
+The address is a string literal pointing to a file or folder. The name becomes a first-class object in the current scope and can be brought into the generation context with `@ref` in constraints:
 
 ```spex
 include "schema.sql" as schema;

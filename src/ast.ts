@@ -79,8 +79,11 @@ export type ExponentialObject = {
   exponent: ObjectExpression
 }
 
-export type ConstraintReference = {
-  kind: 'ConstraintReference'
+// A `@ref` directive in a constraint brings the named object into the
+// generation context. It applies to natural-language, structured, and code
+// constraints alike.
+export type ReferenceDirective = {
+  kind: 'ReferenceDirective'
   name: string
 }
 
@@ -89,9 +92,9 @@ export type ConstraintText = {
   text: string
 }
 
-export type ConstraintPart = ConstraintReference | ConstraintText
+export type ConstraintPart = ReferenceDirective | ConstraintText
 
-// A constraint with references parsed out into its parts.
+// A constraint with its `@ref` directives parsed out into parts.
 export type Constraint = {
   raw: string
   parts: ConstraintPart[]
@@ -119,6 +122,7 @@ export type SubObjectConstraint =
       type: 'Code'
       language: string
       body: string
+      parts: ConstraintPart[]
     }
 
 export type SubObject = {
