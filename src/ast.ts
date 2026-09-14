@@ -1,6 +1,17 @@
+// The position of a node in the source file. `line` and `column` are
+// 1-based; `offset` is a 0-based character offset into the source text.
+// The span is half-open: `end` points one character past the last character
+// of the source text, so `source.slice(start.offset, end.offset)` yields the
+// exact text the node covers.
+export type Location = {
+  start: { offset: number; line: number; column: number }
+  end: { offset: number; line: number; column: number }
+}
+
 export type SpexFile = {
   kind: 'SpexFile'
   declarations: Declaration[]
+  location: Location
 }
 
 export type Declaration =
@@ -14,6 +25,7 @@ export type ObjectDeclaration = {
   kind: 'ObjectDeclaration'
   name: string
   object: ObjectExpression
+  location: Location
 }
 
 export type ImportDeclaration = {
@@ -21,6 +33,7 @@ export type ImportDeclaration = {
   name: string | null
   source: string
   alias: string | null
+  location: Location
 }
 
 // A `generate` command asks the compiler to produce realizations of the named
@@ -31,6 +44,7 @@ export type GenerateDeclaration = {
   kind: 'GenerateDeclaration'
   name: string
   environment: ObjectExpression
+  location: Location
 }
 
 export type RealizeDeclaration = {
@@ -38,12 +52,14 @@ export type RealizeDeclaration = {
   object: ObjectExpression
   target: ObjectExpression
   environment: ObjectExpression
+  location: Location
 }
 
 export type IncludeDeclaration = {
   kind: 'IncludeDeclaration'
   name: string
   address: string
+  location: Location
 }
 
 export type ObjectExpression =
@@ -60,17 +76,20 @@ export type ObjectExpression =
 export type NamedObject = {
   kind: 'NamedObject'
   name: string
+  location: Location
 }
 
 export type ProductObject = {
   kind: 'ProductObject'
   fields: Record<string, ObjectExpression>
+  location: Location
 }
 
 export type ExponentialObject = {
   kind: 'ExponentialObject'
   base: ObjectExpression
   exponent: ObjectExpression
+  location: Location
 }
 
 // A `@ref` directive in a constraint brings the named object into the
@@ -123,11 +142,13 @@ export type SubObject = {
   kind: 'SubObject'
   base: ObjectExpression
   constraint: SubObjectConstraint
+  location: Location
 }
 
 export type ArrayObject = {
   kind: 'ArrayObject'
   base: ObjectExpression
+  location: Location
 }
 
 export type LiteralObject = StringLiteralObject | NumberLiteralObject | BoolLiteralObject
@@ -135,16 +156,19 @@ export type LiteralObject = StringLiteralObject | NumberLiteralObject | BoolLite
 export type StringLiteralObject = {
   kind: 'StringLiteralObject'
   value: string
+  location: Location
 }
 
 export type NumberLiteralObject = {
   kind: 'NumberLiteralObject'
   value: string
+  location: Location
 }
 
 export type BoolLiteralObject = {
   kind: 'BoolLiteralObject'
   value: boolean
+  location: Location
 }
 
 export type SetObject = SetUnionObject | SetIntersectionObject | SetDifferenceObject
@@ -153,24 +177,28 @@ export type SetUnionObject = {
   kind: 'SetUnionObject'
   left: ObjectExpression
   right: ObjectExpression
+  location: Location
 }
 
 export type SetIntersectionObject = {
   kind: 'SetIntersectionObject'
   left: ObjectExpression
   right: ObjectExpression
+  location: Location
 }
 
 export type SetDifferenceObject = {
   kind: 'SetDifferenceObject'
   left: ObjectExpression
   right: ObjectExpression
+  location: Location
 }
 
 export type CoproductObject = {
   kind: 'CoproductObject'
   left: ObjectExpression
   right: ObjectExpression
+  location: Location
 }
 
 // A pattern is a subobject of the string base object: the set of
@@ -179,4 +207,5 @@ export type PatternLiteralObject = {
   kind: 'PatternLiteralObject'
   source: string
   flags: string
+  location: Location
 }

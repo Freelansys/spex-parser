@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { parseToAst, parseConstraint } from '../src/visitor.js'
+import { SpexError } from '../src/errors.js'
 import type {
   ObjectDeclaration,
   ImportDeclaration,
@@ -8,6 +9,21 @@ import type {
   IncludeDeclaration,
   Constraint,
 } from '../src/ast.js'
+
+function stripLocations(value: any): any {
+  if (Array.isArray(value)) {
+    return value.map(stripLocations)
+  }
+  if (value !== null && typeof value === 'object') {
+    const out: any = {}
+    for (const [key, child] of Object.entries(value)) {
+      if (key === 'location') continue
+      out[key] = stripLocations(child)
+    }
+    return out
+  }
+  return value
+}
 
 describe('SpexParserVisitor', () => {
   describe('lexing errors', () => {
@@ -24,6 +40,71 @@ describe('SpexParserVisitor', () => {
     it('should not throw when the input lexes cleanly', () => {
       expect(() => parseToAst('create Foo as string;')).not.toThrow()
     })
+
+    it('should throw a SpexError with the offending position', () => {
+      const error = (() => {
+        try {
+          parseToAst('create Foo as spex-parser;')
+        } catch (e) {
+          return e as SpexError
+        }
+        throw new Error('expected parseToAst to throw')
+      })()
+
+      expect(error).toBeInstanceOf(SpexError)
+      expect(error).toBeInstanceOf(Error)
+      expect(error.name).toBe('SpexError')
+      expect(error.phase).toBe('Lexing')
+      expect(error.location).toEqual({
+        start: { offset: 18, line: 1, column: 19 },
+        end: { offset: 19, line: 1, column: 20 },
+      })
+      const underlying = error.underlying as Array<{ message: string }>
+      expect(Array.isArray(underlying)).toBe(true)
+      expect(underlying[0]!.message).toContain('unexpected character')
+    })
+
+    it('should null out the location when the lexer reports none', () => {
+      const error = (() => {
+        try {
+          parseToAst('create Foo as string; // \u0000')
+        } catch (e) {
+          return e as SpexError
+        }
+        throw new Error('expected parseToAst to throw')
+      })()
+
+      expect(error).toBeInstanceOf(SpexError)
+      // The NUL byte is a valid lexing error target but the reported
+      // position may be undefined; the error must still be spex-structured.
+      expect(error.phase).toBe('Lexing')
+    })
+  })
+
+  describe('parsing errors', () => {
+    it('should throw a SpexError with a message and the offending token position', () => {
+      const error = (() => {
+        try {
+          parseToAst('create Foo as Number; extra')
+        } catch (e) {
+          return e as SpexError
+        }
+        throw new Error('expected parseToAst to throw')
+      })()
+
+      expect(error).toBeInstanceOf(SpexError)
+      expect(error.phase).toBe('Parsing')
+      expect(error.name).toBe('SpexError')
+      expect(error.message).toContain('Parsing errors:')
+      expect(error.location).not.toBeNull()
+      expect(error.location!.start.line).toBe(1)
+      // `extra` is the trailing, unexpected token: it starts right after
+      // "create Foo as Number; " (offset 22) at column 23.
+      expect(error.location!.start.offset).toBe(22)
+      expect(error.location!.start.column).toBe(23)
+      expect(error.location!.end.offset).toBe(27)
+      expect(Array.isArray(error.underlying)).toBe(true)
+    })
   })
 
   describe('object declaration', () => {
@@ -31,7 +112,7 @@ describe('SpexParserVisitor', () => {
       const testCase = 'create MyObject as Number;'
       const ast = parseToAst(testCase)
       const decl = ast.declarations[0] as ObjectDeclaration
-      expect(decl).toEqual({
+      expect(decl).toMatchObject({
         kind: 'ObjectDeclaration',
         name: 'MyObject',
         object: {
@@ -45,7 +126,7 @@ describe('SpexParserVisitor', () => {
       const testCase = 'create MyProduct as (n: Number, s: String);'
       const ast = parseToAst(testCase)
       const decl = ast.declarations[0] as ObjectDeclaration
-      expect(decl).toEqual({
+      expect(decl).toMatchObject({
         kind: 'ObjectDeclaration',
         name: 'MyProduct',
         object: {
@@ -62,7 +143,7 @@ describe('SpexParserVisitor', () => {
       const testCase = 'create MyProduct as (n: Number, s: String,);'
       const ast = parseToAst(testCase)
       const decl = ast.declarations[0] as ObjectDeclaration
-      expect(decl).toEqual({
+      expect(decl).toMatchObject({
         kind: 'ObjectDeclaration',
         name: 'MyProduct',
         object: {
@@ -79,7 +160,7 @@ describe('SpexParserVisitor', () => {
       const testCase = 'create MyProduct as (f: Number -> String, n: Number);'
       const ast = parseToAst(testCase)
       const decl = ast.declarations[0] as ObjectDeclaration
-      expect(decl).toEqual({
+      expect(decl).toMatchObject({
         kind: 'ObjectDeclaration',
         name: 'MyProduct',
         object: {
@@ -101,7 +182,7 @@ describe('SpexParserVisitor', () => {
         'create MyProduct as (p: from Number select { value is positive }, n: Number);'
       const ast = parseToAst(testCase)
       const decl = ast.declarations[0] as ObjectDeclaration
-      expect(decl).toEqual({
+      expect(decl).toMatchObject({
         kind: 'ObjectDeclaration',
         name: 'MyProduct',
         object: {
@@ -126,7 +207,7 @@ describe('SpexParserVisitor', () => {
       const testCase = 'create MyExponential as Number -> Unit;'
       const ast = parseToAst(testCase)
       const decl = ast.declarations[0] as ObjectDeclaration
-      expect(decl).toEqual({
+      expect(decl).toMatchObject({
         kind: 'ObjectDeclaration',
         name: 'MyExponential',
         object: {
@@ -141,7 +222,7 @@ describe('SpexParserVisitor', () => {
       const testCase = 'create MyExponential as (n: Number) -> (s: String);'
       const ast = parseToAst(testCase)
       const decl = ast.declarations[0] as ObjectDeclaration
-      expect(decl).toEqual({
+      expect(decl).toMatchObject({
         kind: 'ObjectDeclaration',
         name: 'MyExponential',
         object: {
@@ -166,7 +247,7 @@ describe('SpexParserVisitor', () => {
       const testCase = 'create MyExponential as (f: Number -> String, n: Number) -> String;'
       const ast = parseToAst(testCase)
       const decl = ast.declarations[0] as ObjectDeclaration
-      expect(decl).toEqual({
+      expect(decl).toMatchObject({
         kind: 'ObjectDeclaration',
         name: 'MyExponential',
         object: {
@@ -192,7 +273,7 @@ describe('SpexParserVisitor', () => {
         'create MyExponential as from Number select { value is positive } -> from Number select { value is positive };'
       const ast = parseToAst(testCase)
       const decl = ast.declarations[0] as ObjectDeclaration
-      expect(decl).toEqual({
+      expect(decl).toMatchObject({
         kind: 'ObjectDeclaration',
         name: 'MyExponential',
         object: {
@@ -223,7 +304,7 @@ describe('SpexParserVisitor', () => {
       const testCase = 'create PositiveNumber as from Number select { isPositive };'
       const ast = parseToAst(testCase)
       const decl = ast.declarations[0] as ObjectDeclaration
-      expect(decl).toEqual({
+      expect(decl).toMatchObject({
         kind: 'ObjectDeclaration',
         name: 'PositiveNumber',
         object: {
@@ -243,7 +324,7 @@ describe('SpexParserVisitor', () => {
         'create ExpressWebEnv as from Web intersect TypeScript select { is an express app };'
       const ast = parseToAst(testCase)
       const decl = ast.declarations[0] as ObjectDeclaration
-      expect(decl).toEqual({
+      expect(decl).toMatchObject({
         kind: 'ObjectDeclaration',
         name: 'ExpressWebEnv',
         object: {
@@ -266,7 +347,7 @@ describe('SpexParserVisitor', () => {
       const testCase = 'create PositiveNumber as from Number select { the number is positive };'
       const ast = parseToAst(testCase)
       const decl = ast.declarations[0] as ObjectDeclaration
-      expect(decl).toEqual({
+      expect(decl).toMatchObject({
         kind: 'ObjectDeclaration',
         name: 'PositiveNumber',
         object: {
@@ -286,7 +367,7 @@ describe('SpexParserVisitor', () => {
         'create MySubobject as from (n: Number, s: String) select { @n is positive };'
       const ast = parseToAst(testCase)
       const decl = ast.declarations[0] as ObjectDeclaration
-      expect(decl).toEqual({
+      expect(decl).toMatchObject({
         kind: 'ObjectDeclaration',
         name: 'MySubobject',
         object: {
@@ -315,7 +396,7 @@ describe('SpexParserVisitor', () => {
         'create MySubobject as from (n: Number, s: String) -> Bool select { logs the given input };'
       const ast = parseToAst(testCase)
       const decl = ast.declarations[0] as ObjectDeclaration
-      expect(decl).toEqual({
+      expect(decl).toMatchObject({
         kind: 'ObjectDeclaration',
         name: 'MySubobject',
         object: {
@@ -345,7 +426,7 @@ describe('SpexParserVisitor', () => {
         'create MySubobject as from from Number select { value is positive } select { value is odd };'
       const ast = parseToAst(testCase)
       const decl = ast.declarations[0] as ObjectDeclaration
-      expect(decl).toEqual({
+      expect(decl).toMatchObject({
         kind: 'ObjectDeclaration',
         name: 'MySubobject',
         object: {
@@ -372,7 +453,7 @@ describe('SpexParserVisitor', () => {
       const testCase = 'create MyObject as string;'
       const ast = parseToAst(testCase)
       const decl = ast.declarations[0] as ObjectDeclaration
-      expect(decl).toEqual({
+      expect(decl).toMatchObject({
         kind: 'ObjectDeclaration',
         name: 'MyObject',
         object: {
@@ -386,7 +467,7 @@ describe('SpexParserVisitor', () => {
       const testCase = 'create MyObject as number;'
       const ast = parseToAst(testCase)
       const decl = ast.declarations[0] as ObjectDeclaration
-      expect(decl).toEqual({
+      expect(decl).toMatchObject({
         kind: 'ObjectDeclaration',
         name: 'MyObject',
         object: {
@@ -400,7 +481,7 @@ describe('SpexParserVisitor', () => {
       const testCase = 'create MyObject as bool;'
       const ast = parseToAst(testCase)
       const decl = ast.declarations[0] as ObjectDeclaration
-      expect(decl).toEqual({
+      expect(decl).toMatchObject({
         kind: 'ObjectDeclaration',
         name: 'MyObject',
         object: {
@@ -414,7 +495,7 @@ describe('SpexParserVisitor', () => {
       const testCase = 'create MyObject as unit;'
       const ast = parseToAst(testCase)
       const decl = ast.declarations[0] as ObjectDeclaration
-      expect(decl).toEqual({
+      expect(decl).toMatchObject({
         kind: 'ObjectDeclaration',
         name: 'MyObject',
         object: {
@@ -428,7 +509,7 @@ describe('SpexParserVisitor', () => {
       const testCase = 'create MyObject as concept;'
       const ast = parseToAst(testCase)
       const decl = ast.declarations[0] as ObjectDeclaration
-      expect(decl).toEqual({
+      expect(decl).toMatchObject({
         kind: 'ObjectDeclaration',
         name: 'MyObject',
         object: {
@@ -442,7 +523,7 @@ describe('SpexParserVisitor', () => {
       const testCase = 'create MyObject as environment;'
       const ast = parseToAst(testCase)
       const decl = ast.declarations[0] as ObjectDeclaration
-      expect(decl).toEqual({
+      expect(decl).toMatchObject({
         kind: 'ObjectDeclaration',
         name: 'MyObject',
         object: {
@@ -456,7 +537,7 @@ describe('SpexParserVisitor', () => {
       const testCase = 'create MyObject as artifact;'
       const ast = parseToAst(testCase)
       const decl = ast.declarations[0] as ObjectDeclaration
-      expect(decl).toEqual({
+      expect(decl).toMatchObject({
         kind: 'ObjectDeclaration',
         name: 'MyObject',
         object: {
@@ -470,7 +551,7 @@ describe('SpexParserVisitor', () => {
       const testCase = 'create MyArray as string[];'
       const ast = parseToAst(testCase)
       const decl = ast.declarations[0] as ObjectDeclaration
-      expect(decl).toEqual({
+      expect(decl).toMatchObject({
         kind: 'ObjectDeclaration',
         name: 'MyArray',
         object: {
@@ -484,7 +565,7 @@ describe('SpexParserVisitor', () => {
       const testCase = 'create MyArray as (n: Number)[];'
       const ast = parseToAst(testCase)
       const decl = ast.declarations[0] as ObjectDeclaration
-      expect(decl).toEqual({
+      expect(decl).toMatchObject({
         kind: 'ObjectDeclaration',
         name: 'MyArray',
         object: {
@@ -504,7 +585,7 @@ describe('SpexParserVisitor', () => {
         'create SignUp as (user: types.EmailAddress, pass: types.Password) -> string;'
       const ast = parseToAst(testCase)
       const decl = ast.declarations[0] as ObjectDeclaration
-      expect(decl).toEqual({
+      expect(decl).toMatchObject({
         kind: 'ObjectDeclaration',
         name: 'SignUp',
         object: {
@@ -527,7 +608,7 @@ describe('SpexParserVisitor', () => {
       const testCase = 'import EmailAddress from "types.spex";'
       const ast = parseToAst(testCase)
       const decl = ast.declarations[0] as ImportDeclaration
-      expect(decl).toEqual({
+      expect(decl).toMatchObject({
         kind: 'ImportDeclaration',
         name: 'EmailAddress',
         source: 'types.spex',
@@ -539,7 +620,7 @@ describe('SpexParserVisitor', () => {
       const testCase = 'import EmailAddress from "types.spex" as Username;'
       const ast = parseToAst(testCase)
       const decl = ast.declarations[0] as ImportDeclaration
-      expect(decl).toEqual({
+      expect(decl).toMatchObject({
         kind: 'ImportDeclaration',
         name: 'EmailAddress',
         source: 'types.spex',
@@ -551,7 +632,7 @@ describe('SpexParserVisitor', () => {
       const testCase = 'import "types.spex" as types;'
       const ast = parseToAst(testCase)
       const decl = ast.declarations[0] as ImportDeclaration
-      expect(decl).toEqual({
+      expect(decl).toMatchObject({
         kind: 'ImportDeclaration',
         name: null,
         source: 'types.spex',
@@ -563,7 +644,7 @@ describe('SpexParserVisitor', () => {
       const testCase = "import EmailAddress from 'types.spex' as Username;"
       const ast = parseToAst(testCase)
       const decl = ast.declarations[0] as ImportDeclaration
-      expect(decl).toEqual({
+      expect(decl).toMatchObject({
         kind: 'ImportDeclaration',
         name: 'EmailAddress',
         source: 'types.spex',
@@ -584,7 +665,7 @@ describe('SpexParserVisitor', () => {
       const testCase = 'generate Main;'
       const ast = parseToAst(testCase)
       const decl = ast.declarations[0] as GenerateDeclaration
-      expect(decl).toEqual({
+      expect(decl).toMatchObject({
         kind: 'GenerateDeclaration',
         name: 'Main',
         environment: { kind: 'NamedObject', name: 'environment' },
@@ -595,7 +676,7 @@ describe('SpexParserVisitor', () => {
       const testCase = 'generate Main in Python;'
       const ast = parseToAst(testCase)
       const decl = ast.declarations[0] as GenerateDeclaration
-      expect(decl).toEqual({
+      expect(decl).toMatchObject({
         kind: 'GenerateDeclaration',
         name: 'Main',
         environment: { kind: 'NamedObject', name: 'Python' },
@@ -608,7 +689,7 @@ describe('SpexParserVisitor', () => {
       const testCase = 'create Foo as "SpexFile";'
       const ast = parseToAst(testCase)
       const decl = ast.declarations[0] as ObjectDeclaration
-      expect(decl).toEqual({
+      expect(decl).toMatchObject({
         kind: 'ObjectDeclaration',
         name: 'Foo',
         object: {
@@ -622,7 +703,7 @@ describe('SpexParserVisitor', () => {
       const testCase = 'create Foo as 42;'
       const ast = parseToAst(testCase)
       const decl = ast.declarations[0] as ObjectDeclaration
-      expect(decl.object).toEqual({
+      expect(decl.object).toMatchObject({
         kind: 'NumberLiteralObject',
         value: '42',
       })
@@ -631,7 +712,7 @@ describe('SpexParserVisitor', () => {
     it('should convert bool literal object to AST', () => {
       const ast = parseToAst('create Foo as true;')
       const decl = ast.declarations[0] as ObjectDeclaration
-      expect(decl.object).toEqual({
+      expect(decl.object).toMatchObject({
         kind: 'BoolLiteralObject',
         value: true,
       })
@@ -641,7 +722,7 @@ describe('SpexParserVisitor', () => {
       const testCase = "create Foo as (name: \"John\", age: 42);"
       const ast = parseToAst(testCase)
       const decl = ast.declarations[0] as ObjectDeclaration
-      expect(decl.object).toEqual({
+      expect(decl.object).toMatchObject({
         kind: 'ProductObject',
         fields: {
           name: { kind: 'StringLiteralObject', value: 'John' },
@@ -654,7 +735,7 @@ describe('SpexParserVisitor', () => {
       const testCase = "create Foo as 'it\\'s';"
       const ast = parseToAst(testCase)
       const decl = ast.declarations[0] as ObjectDeclaration
-      expect(decl.object).toEqual({
+      expect(decl.object).toMatchObject({
         kind: 'StringLiteralObject',
         value: "it's",
       })
@@ -666,7 +747,7 @@ describe('SpexParserVisitor', () => {
       const testCase = 'create X as A UNION B;'
       const ast = parseToAst(testCase)
       const decl = ast.declarations[0] as ObjectDeclaration
-      expect(decl.object).toEqual({
+      expect(decl.object).toMatchObject({
         kind: 'SetUnionObject',
         left: { kind: 'NamedObject', name: 'A' },
         right: { kind: 'NamedObject', name: 'B' },
@@ -677,7 +758,7 @@ describe('SpexParserVisitor', () => {
       const testCase = 'create X as A INTERSECT B;'
       const ast = parseToAst(testCase)
       const decl = ast.declarations[0] as ObjectDeclaration
-      expect(decl.object).toEqual({
+      expect(decl.object).toMatchObject({
         kind: 'SetIntersectionObject',
         left: { kind: 'NamedObject', name: 'A' },
         right: { kind: 'NamedObject', name: 'B' },
@@ -688,7 +769,7 @@ describe('SpexParserVisitor', () => {
       const testCase = 'create X as A EXCEPT B;'
       const ast = parseToAst(testCase)
       const decl = ast.declarations[0] as ObjectDeclaration
-      expect(decl.object).toEqual({
+      expect(decl.object).toMatchObject({
         kind: 'SetDifferenceObject',
         left: { kind: 'NamedObject', name: 'A' },
         right: { kind: 'NamedObject', name: 'B' },
@@ -699,7 +780,7 @@ describe('SpexParserVisitor', () => {
       const testCase = 'create X as A UNION B EXCEPT C;'
       const ast = parseToAst(testCase)
       const decl = ast.declarations[0] as ObjectDeclaration
-      expect(decl.object).toEqual({
+      expect(decl.object).toMatchObject({
         kind: 'SetDifferenceObject',
         left: {
           kind: 'SetUnionObject',
@@ -714,7 +795,7 @@ describe('SpexParserVisitor', () => {
       const testCase = 'create X as A EXCEPT B UNION C;'
       const ast = parseToAst(testCase)
       const decl = ast.declarations[0] as ObjectDeclaration
-      expect(decl.object).toEqual({
+      expect(decl.object).toMatchObject({
         kind: 'SetUnionObject',
         left: {
           kind: 'SetDifferenceObject',
@@ -729,7 +810,7 @@ describe('SpexParserVisitor', () => {
       const testCase = 'create X as string EXCEPT "root";'
       const ast = parseToAst(testCase)
       const decl = ast.declarations[0] as ObjectDeclaration
-      expect(decl.object).toEqual({
+      expect(decl.object).toMatchObject({
         kind: 'SetDifferenceObject',
         left: { kind: 'NamedObject', name: 'string' },
         right: { kind: 'StringLiteralObject', value: 'root' },
@@ -740,7 +821,7 @@ describe('SpexParserVisitor', () => {
       const testCase = 'create X as (a: A UNION B);'
       const ast = parseToAst(testCase)
       const decl = ast.declarations[0] as ObjectDeclaration
-      expect(decl.object).toEqual({
+      expect(decl.object).toMatchObject({
         kind: 'ProductObject',
         fields: {
           a: {
@@ -758,7 +839,7 @@ describe('SpexParserVisitor', () => {
       const testCase = 'create Shape as Point | Circle;'
       const ast = parseToAst(testCase)
       const decl = ast.declarations[0] as ObjectDeclaration
-      expect(decl.object).toEqual({
+      expect(decl.object).toMatchObject({
         kind: 'CoproductObject',
         left: { kind: 'NamedObject', name: 'Point' },
         right: { kind: 'NamedObject', name: 'Circle' },
@@ -769,7 +850,7 @@ describe('SpexParserVisitor', () => {
       const testCase = 'create X as A | B | C;'
       const ast = parseToAst(testCase)
       const decl = ast.declarations[0] as ObjectDeclaration
-      expect(decl.object).toEqual({
+      expect(decl.object).toMatchObject({
         kind: 'CoproductObject',
         left: {
           kind: 'CoproductObject',
@@ -784,7 +865,7 @@ describe('SpexParserVisitor', () => {
       const testCase = 'create X as A -> B | C;'
       const ast = parseToAst(testCase)
       const decl = ast.declarations[0] as ObjectDeclaration
-      expect(decl.object).toEqual({
+      expect(decl.object).toMatchObject({
         kind: 'CoproductObject',
         left: {
           kind: 'ExponentialObject',
@@ -799,7 +880,7 @@ describe('SpexParserVisitor', () => {
       const testCase = 'create X as A UNION B | C;'
       const ast = parseToAst(testCase)
       const decl = ast.declarations[0] as ObjectDeclaration
-      expect(decl.object).toEqual({
+      expect(decl.object).toMatchObject({
         kind: 'SetUnionObject',
         left: { kind: 'NamedObject', name: 'A' },
         right: {
@@ -814,7 +895,7 @@ describe('SpexParserVisitor', () => {
       const testCase = 'create X as A -> B UNION C;'
       const ast = parseToAst(testCase)
       const decl = ast.declarations[0] as ObjectDeclaration
-      expect(decl.object).toEqual({
+      expect(decl.object).toMatchObject({
         kind: 'SetUnionObject',
         left: {
           kind: 'ExponentialObject',
@@ -829,7 +910,7 @@ describe('SpexParserVisitor', () => {
       const testCase = 'create X as (a: A | B, b: C);'
       const ast = parseToAst(testCase)
       const decl = ast.declarations[0] as ObjectDeclaration
-      expect(decl.object).toEqual({
+      expect(decl.object).toMatchObject({
         kind: 'ProductObject',
         fields: {
           a: {
@@ -846,7 +927,7 @@ describe('SpexParserVisitor', () => {
       const testCase = 'create X as string | "number";'
       const ast = parseToAst(testCase)
       const decl = ast.declarations[0] as ObjectDeclaration
-      expect(decl.object).toEqual({
+      expect(decl.object).toMatchObject({
         kind: 'CoproductObject',
         left: { kind: 'NamedObject', name: 'string' },
         right: { kind: 'StringLiteralObject', value: 'number' },
@@ -859,7 +940,7 @@ describe('SpexParserVisitor', () => {
       const testCase = 'create X as (A | B);'
       const ast = parseToAst(testCase)
       const decl = ast.declarations[0] as ObjectDeclaration
-      expect(decl.object).toEqual({
+      expect(decl.object).toMatchObject({
         kind: 'CoproductObject',
         left: { kind: 'NamedObject', name: 'A' },
         right: { kind: 'NamedObject', name: 'B' },
@@ -870,7 +951,7 @@ describe('SpexParserVisitor', () => {
       const testCase = 'create X as A -> (B | C);'
       const ast = parseToAst(testCase)
       const decl = ast.declarations[0] as ObjectDeclaration
-      expect(decl.object).toEqual({
+      expect(decl.object).toMatchObject({
         kind: 'ExponentialObject',
         base: {
           kind: 'CoproductObject',
@@ -885,7 +966,7 @@ describe('SpexParserVisitor', () => {
       const testCase = 'create X as (A UNION B) EXCEPT C;'
       const ast = parseToAst(testCase)
       const decl = ast.declarations[0] as ObjectDeclaration
-      expect(decl.object).toEqual({
+      expect(decl.object).toMatchObject({
         kind: 'SetDifferenceObject',
         left: {
           kind: 'SetUnionObject',
@@ -900,7 +981,7 @@ describe('SpexParserVisitor', () => {
       const testCase = 'create X as (A | B)[];'
       const ast = parseToAst(testCase)
       const decl = ast.declarations[0] as ObjectDeclaration
-      expect(decl.object).toEqual({
+      expect(decl.object).toMatchObject({
         kind: 'ArrayObject',
         base: {
           kind: 'CoproductObject',
@@ -914,8 +995,9 @@ describe('SpexParserVisitor', () => {
       const testCase = 'create X as ();'
       const ast = parseToAst(testCase)
       const decl = ast.declarations[0] as ObjectDeclaration
-      expect(decl.object).toEqual({ kind: 'NamedObject', name: 'unit' })
-      expect(parseToAst('create X as unit;').declarations[0]).toEqual(decl)
+      expect(decl.object).toMatchObject({ kind: 'NamedObject', name: 'unit' })
+      const unitDecl = parseToAst('create X as unit;').declarations[0] as ObjectDeclaration
+      expect(stripLocations(unitDecl)).toEqual(stripLocations(decl))
     })
   })
 
@@ -924,7 +1006,7 @@ describe('SpexParserVisitor', () => {
       const testCase = 'create X as (id: string, foo: unit);'
       const ast = parseToAst(testCase)
       const decl = ast.declarations[0] as ObjectDeclaration
-      expect(decl.object).toEqual({
+      expect(decl.object).toMatchObject({
         kind: 'ProductObject',
         fields: {
           id: { kind: 'NamedObject', name: 'string' },
@@ -936,14 +1018,14 @@ describe('SpexParserVisitor', () => {
       const testCase = 'create X as (foo: unit, bar: unit);'
       const ast = parseToAst(testCase)
       const decl = ast.declarations[0] as ObjectDeclaration
-      expect(decl.object).toEqual({ kind: 'NamedObject', name: 'unit' })
+      expect(decl.object).toMatchObject({ kind: 'NamedObject', name: 'unit' })
     })
 
     it('should drop fields whose value is an empty product', () => {
       const testCase = 'create X as (id: string, foo: ());'
       const ast = parseToAst(testCase)
       const decl = ast.declarations[0] as ObjectDeclaration
-      expect(decl.object).toEqual({
+      expect(decl.object).toMatchObject({
         kind: 'ProductObject',
         fields: {
           id: { kind: 'NamedObject', name: 'string' },
@@ -955,7 +1037,7 @@ describe('SpexParserVisitor', () => {
       const testCase = 'create X as (id: string, nothing: (a: unit, b: bool));'
       const ast = parseToAst(testCase)
       const decl = ast.declarations[0] as ObjectDeclaration
-      expect(decl.object).toEqual({
+      expect(decl.object).toMatchObject({
         kind: 'ProductObject',
         fields: {
           id: { kind: 'NamedObject', name: 'string' },
@@ -975,7 +1057,7 @@ describe('SpexParserVisitor', () => {
       const testCase = 'create X as /\\d+/i;'
       const ast = parseToAst(testCase)
       const decl = ast.declarations[0] as ObjectDeclaration
-      expect(decl.object).toEqual({
+      expect(decl.object).toMatchObject({
         kind: 'PatternLiteralObject',
         source: '\\d+',
         flags: 'i',
@@ -986,7 +1068,7 @@ describe('SpexParserVisitor', () => {
       const testCase = 'create X as /\\/\\*[\\s\\S]*?\\*\\//;'
       const ast = parseToAst(testCase)
       const decl = ast.declarations[0] as ObjectDeclaration
-      expect(decl.object).toEqual({
+      expect(decl.object).toMatchObject({
         kind: 'PatternLiteralObject',
         source: '\\/\\*[\\s\\S]*?\\*\\/',
         flags: '',
@@ -997,7 +1079,7 @@ describe('SpexParserVisitor', () => {
       const testCase = 'create X as /[a-zA-Z_][a-zA-Z0-9_]*/;'
       const ast = parseToAst(testCase)
       const decl = ast.declarations[0] as ObjectDeclaration
-      expect(decl.object).toEqual({
+      expect(decl.object).toMatchObject({
         kind: 'PatternLiteralObject',
         source: '[a-zA-Z_][a-zA-Z0-9_]*',
         flags: '',
@@ -1008,7 +1090,7 @@ describe('SpexParserVisitor', () => {
       const testCase = 'create X as (name: string, pattern: /[a-z]+/i);'
       const ast = parseToAst(testCase)
       const decl = ast.declarations[0] as ObjectDeclaration
-      expect(decl.object).toEqual({
+      expect(decl.object).toMatchObject({
         kind: 'ProductObject',
         fields: {
           name: { kind: 'NamedObject', name: 'string' },
@@ -1126,7 +1208,7 @@ describe('SpexParserVisitor', () => {
       const testCase = 'create Foo as from string select { are valid -- like emails };'
       const ast = parseToAst(testCase)
       const decl = ast.declarations[0] as ObjectDeclaration
-      expect(decl.object).toEqual({
+      expect(decl.object).toMatchObject({
         kind: 'SubObject',
         base: { kind: 'NamedObject', name: 'string' },
         constraint: {
@@ -1141,7 +1223,7 @@ describe('SpexParserVisitor', () => {
       const testCase = 'create Foo as from string select { match /* strict */ @pattern };'
       const ast = parseToAst(testCase)
       const decl = ast.declarations[0] as ObjectDeclaration
-      expect(decl.object).toEqual({
+      expect(decl.object).toMatchObject({
         kind: 'SubObject',
         base: { kind: 'NamedObject', name: 'string' },
         constraint: {
@@ -1161,7 +1243,7 @@ describe('SpexParserVisitor', () => {
       const testCase = 'create Foo as from string select { end with \\} };'
       const ast = parseToAst(testCase)
       const decl = ast.declarations[0] as ObjectDeclaration
-      expect(decl.object).toEqual({
+      expect(decl.object).toMatchObject({
         kind: 'SubObject',
         base: { kind: 'NamedObject', name: 'string' },
         constraint: {
@@ -1176,7 +1258,7 @@ describe('SpexParserVisitor', () => {
       const testCase = 'create Foo as from string select { match \\{a\\} };'
       const ast = parseToAst(testCase)
       const decl = ast.declarations[0] as ObjectDeclaration
-      expect(decl.object).toEqual({
+      expect(decl.object).toMatchObject({
         kind: 'SubObject',
         base: { kind: 'NamedObject', name: 'string' },
         constraint: {
@@ -1191,7 +1273,7 @@ describe('SpexParserVisitor', () => {
       const testCase = 'create Foo as from string select { paths use \\\\ };'
       const ast = parseToAst(testCase)
       const decl = ast.declarations[0] as ObjectDeclaration
-      expect(decl.object).toEqual({
+      expect(decl.object).toMatchObject({
         kind: 'SubObject',
         base: { kind: 'NamedObject', name: 'string' },
         constraint: {
@@ -1206,7 +1288,7 @@ describe('SpexParserVisitor', () => {
       const testCase = 'create Foo as from string select { call @foo with \\} };'
       const ast = parseToAst(testCase)
       const decl = ast.declarations[0] as ObjectDeclaration
-      expect(decl.object).toEqual({
+      expect(decl.object).toMatchObject({
         kind: 'SubObject',
         base: { kind: 'NamedObject', name: 'string' },
         constraint: {
@@ -1227,7 +1309,7 @@ describe('SpexParserVisitor', () => {
       const testCase = 'realize Shape as Circle in environment;'
       const ast = parseToAst(testCase)
       const decl = ast.declarations[0] as RealizeDeclaration
-      expect(decl).toEqual({
+      expect(decl).toMatchObject({
         kind: 'RealizeDeclaration',
         object: { kind: 'NamedObject', name: 'Shape' },
         target: { kind: 'NamedObject', name: 'Circle' },
@@ -1239,7 +1321,7 @@ describe('SpexParserVisitor', () => {
       const testCase = 'realize string -> number as (y: string) in MyEnv;'
       const ast = parseToAst(testCase)
       const decl = ast.declarations[0] as RealizeDeclaration
-      expect(decl).toEqual({
+      expect(decl).toMatchObject({
         kind: 'RealizeDeclaration',
         object: {
           kind: 'ExponentialObject',
@@ -1258,7 +1340,7 @@ describe('SpexParserVisitor', () => {
       const testCase = 'realize A as B;'
       const ast = parseToAst(testCase)
       const decl = ast.declarations[0] as RealizeDeclaration
-      expect(decl).toEqual({
+      expect(decl).toMatchObject({
         kind: 'RealizeDeclaration',
         object: { kind: 'NamedObject', name: 'A' },
         target: { kind: 'NamedObject', name: 'B' },
@@ -1271,7 +1353,7 @@ describe('SpexParserVisitor', () => {
       const ast = parseToAst(testCase)
       expect(ast.declarations).toHaveLength(2)
       const realizeDecl = ast.declarations[1] as RealizeDeclaration
-      expect(realizeDecl).toEqual({
+      expect(realizeDecl).toMatchObject({
         kind: 'RealizeDeclaration',
         object: { kind: 'NamedObject', name: 'A' },
         target: { kind: 'NamedObject', name: 'B' },
@@ -1285,7 +1367,7 @@ describe('SpexParserVisitor', () => {
       const testCase = 'include "config.json" as config;'
       const ast = parseToAst(testCase)
       const decl = ast.declarations[0] as IncludeDeclaration
-      expect(decl).toEqual({
+      expect(decl).toMatchObject({
         kind: 'IncludeDeclaration',
         name: 'config',
         address: 'config.json',
@@ -1296,7 +1378,7 @@ describe('SpexParserVisitor', () => {
       const testCase = 'INCLUDE "config.json" AS config;'
       const ast = parseToAst(testCase)
       const decl = ast.declarations[0] as IncludeDeclaration
-      expect(decl).toEqual({
+      expect(decl).toMatchObject({
         kind: 'IncludeDeclaration',
         name: 'config',
         address: 'config.json',
@@ -1307,7 +1389,7 @@ describe('SpexParserVisitor', () => {
       const testCase = "include 'data/file.txt' as myfile;"
       const ast = parseToAst(testCase)
       const decl = ast.declarations[0] as IncludeDeclaration
-      expect(decl).toEqual({
+      expect(decl).toMatchObject({
         kind: 'IncludeDeclaration',
         name: 'myfile',
         address: 'data/file.txt',
@@ -1318,7 +1400,7 @@ describe('SpexParserVisitor', () => {
       const testCase = 'include "images/" as assets;'
       const ast = parseToAst(testCase)
       const decl = ast.declarations[0] as IncludeDeclaration
-      expect(decl).toEqual({
+      expect(decl).toMatchObject({
         kind: 'IncludeDeclaration',
         name: 'assets',
         address: 'images/',
@@ -1330,7 +1412,7 @@ describe('SpexParserVisitor', () => {
       const ast = parseToAst(testCase)
       expect(ast.declarations).toHaveLength(2)
       const includeDecl = ast.declarations[0] as IncludeDeclaration
-      expect(includeDecl).toEqual({
+      expect(includeDecl).toMatchObject({
         kind: 'IncludeDeclaration',
         name: 'config',
         address: 'config.json',
@@ -1345,7 +1427,7 @@ describe('SpexParserVisitor', () => {
       const testCase = 'create double as from number -> number select ```\nreturn n * 2\n```;'
       const ast = parseToAst(testCase)
       const decl = ast.declarations[0] as ObjectDeclaration
-      expect(decl.object).toEqual({
+      expect(decl.object).toMatchObject({
         kind: 'SubObject',
         base: {
           kind: 'ExponentialObject',
@@ -1364,7 +1446,7 @@ describe('SpexParserVisitor', () => {
       const testCase = 'create double as from number -> number select ```python\nreturn @n * 2\n```;'
       const ast = parseToAst(testCase)
       const decl = ast.declarations[0] as ObjectDeclaration
-      expect(decl.object).toEqual({
+      expect(decl.object).toMatchObject({
         kind: 'SubObject',
         base: {
           kind: 'ExponentialObject',
@@ -1389,7 +1471,7 @@ describe('SpexParserVisitor', () => {
         'create Config as (handler: from (x: string) -> string select ```typescript\nreturn x.toUpperCase();\n```, port: number);'
       const ast = parseToAst(testCase)
       const decl = ast.declarations[0] as ObjectDeclaration
-      expect(decl.object).toEqual({
+      expect(decl.object).toMatchObject({
         kind: 'ProductObject',
         fields: {
           handler: {

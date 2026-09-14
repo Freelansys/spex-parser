@@ -42,7 +42,7 @@ import {
 
 export class SpexParser extends CstParser {
   constructor() {
-    super(allTokens)
+    super(allTokens, { nodeLocationTracking: 'full' })
     this.performSelfAnalysis()
   }
 
