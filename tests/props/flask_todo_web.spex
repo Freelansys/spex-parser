@@ -94,17 +94,17 @@ select {
   5. run the application
 };
 
-realize TodoWeb as (
+realize TodoWeb as {
   list: ListTodosHandler,
   add: AddTodoHandler,
   complete: CompleteTodoHandler,
-  storage: (
+  storage: {
     open: OpenSqlite,
     query: SelectTodos,
     insert: InsertTodo,
     update: UpdateTodo
-  ),
+  },
   main: FlaskTodoWeb
-) in FlaskWebEnv;
+} in FlaskWebEnv;
 
 generate TodoWeb in FlaskWebEnv;

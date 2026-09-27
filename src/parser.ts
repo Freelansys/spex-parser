@@ -21,6 +21,8 @@ import {
   RBracket,
   LParen,
   RParen,
+  LCurly,
+  RCurly,
   Colon,
   Comma,
   Semicolon,
@@ -240,12 +242,43 @@ export class SpexParser extends CstParser {
     this.CONSUME(RealizeTok)
     this.SUBRULE(this.setObject, { LABEL: 'object' })
     this.CONSUME(AsTok)
-    this.SUBRULE2(this.setObject, { LABEL: 'target' })
+    this.SUBRULE2(this.realizeTarget, { LABEL: 'target' })
     this.OPTION(() => {
       this.CONSUME(InTok)
       this.SUBRULE3(this.setObject, { LABEL: 'environment' })
     })
     this.CONSUME(Semicolon)
+  })
+
+  private realizeTarget = this.RULE('realizeTarget', () => {
+    this.OR([
+      {
+        GATE: this.BACKTRACK(this.decomposition),
+        ALT: () => this.SUBRULE(this.decomposition),
+      },
+      { ALT: () => this.SUBRULE(this.setObject, { LABEL: 'object' }) },
+    ])
+  })
+
+  private decomposition = this.RULE('decomposition', () => {
+    this.CONSUME(LCurly)
+    this.MANY(() => {
+      this.SUBRULE(this.decompositionPart)
+      this.OPTION(() => this.CONSUME(Comma))
+    })
+    this.CONSUME(RCurly)
+  })
+
+  private decompositionPart = this.RULE('decompositionPart', () => {
+    this.CONSUME(Identifier)
+    this.CONSUME(Colon)
+    this.OR([
+      {
+        GATE: this.BACKTRACK(this.decomposition),
+        ALT: () => this.SUBRULE(this.decomposition),
+      },
+      { ALT: () => this.SUBRULE(this.setObject, { LABEL: 'object' }) },
+    ])
   })
 
   private includeDeclaration = this.RULE('includeDeclaration', () => {

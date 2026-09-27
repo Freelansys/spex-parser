@@ -6,6 +6,7 @@ import type {
   ImportDeclaration,
   GenerateDeclaration,
   RealizeDeclaration,
+  Decomposition,
   IncludeDeclaration,
   Constraint,
 } from '../src/ast.js'
@@ -1318,7 +1319,7 @@ describe('SpexParserVisitor', () => {
     })
 
     it('should convert a realize declaration with complex objects to AST', () => {
-      const testCase = 'realize string -> number as (y: string) in MyEnv;'
+      const testCase = 'realize string -> number as { y: string } in MyEnv;'
       const ast = parseToAst(testCase)
       const decl = ast.declarations[0] as RealizeDeclaration
       expect(decl).toMatchObject({
@@ -1329,10 +1330,110 @@ describe('SpexParserVisitor', () => {
           base: { kind: 'NamedObject', name: 'number' },
         },
         target: {
-          kind: 'ProductObject',
-          fields: { y: { kind: 'NamedObject', name: 'string' } },
+          kind: 'Decomposition',
+          parts: [{ name: 'y', object: { kind: 'NamedObject', name: 'string' } }],
         },
         environment: { kind: 'NamedObject', name: 'MyEnv' },
+      })
+    })
+
+    it('should convert a realize declaration with a nested decomposition to AST', () => {
+      const testCase =
+        'realize TodoWeb as { storage: { open: OpenSqlite, query: SelectTodos }, main: Main } in MyEnv;'
+      const ast = parseToAst(testCase)
+      const decl = ast.declarations[0] as RealizeDeclaration
+      expect(decl).toMatchObject({
+        target: {
+          kind: 'Decomposition',
+          parts: [
+            {
+              name: 'storage',
+              object: {
+                kind: 'Decomposition',
+                parts: [
+                  { name: 'open', object: { kind: 'NamedObject', name: 'OpenSqlite' } },
+                  { name: 'query', object: { kind: 'NamedObject', name: 'SelectTodos' } },
+                ],
+              },
+            },
+            { name: 'main', object: { kind: 'NamedObject', name: 'Main' } },
+          ],
+        },
+      })
+    })
+
+    it('should keep a product part value inside a decomposition', () => {
+      const testCase = 'realize Point as { at: (x: number, y: number) };'
+      const ast = parseToAst(testCase)
+      const decl = ast.declarations[0] as RealizeDeclaration
+      expect(decl).toMatchObject({
+        target: {
+          kind: 'Decomposition',
+          parts: [
+            {
+              name: 'at',
+              object: {
+                kind: 'ProductObject',
+                fields: {
+                  x: { kind: 'NamedObject', name: 'number' },
+                  y: { kind: 'NamedObject', name: 'number' },
+                },
+              },
+            },
+          ],
+        },
+      })
+    })
+
+    it('should convert an empty decomposition to AST', () => {
+      const testCase = 'realize Concept as {};'
+      const ast = parseToAst(testCase)
+      const decl = ast.declarations[0] as RealizeDeclaration
+      expect(decl).toMatchObject({ target: { kind: 'Decomposition', parts: [] } })
+    })
+
+    it('should locate a decomposition in the source', () => {
+      const testCase = 'realize Concept as { db: SqlSchema } in MyEnv;'
+      const ast = parseToAst(testCase)
+      const target = (ast.declarations[0] as RealizeDeclaration).target as Decomposition
+      const source = testCase
+      expect(source.slice(target.location.start.offset, target.location.end.offset)).toBe(
+        '{ db: SqlSchema }'
+      )
+      expect(target.parts[0]?.location.start.line).toBe(1)
+    })
+
+    it('should reject a product as a realization target', () => {
+      const testCase = 'realize Concept as (a: A, b: B) in MyEnv;'
+      expect(() => parseToAst(testCase)).toThrow(SpexError)
+      expect(() => parseToAst(testCase)).toThrow(/ambiguous realization target/)
+    })
+
+    it('should reject a product as a realization target behind parentheses', () => {
+      const testCase = 'realize Concept as ((a: A));'
+      expect(() => parseToAst(testCase)).toThrow(/ambiguous realization target/)
+    })
+
+    it('should report the location of a rejected realization target', () => {
+      const testCase = 'create X as string;\nrealize Concept as (a: A);'
+      let error: unknown
+      try {
+        parseToAst(testCase)
+      } catch (e) {
+        error = e
+      }
+      expect(error).toBeInstanceOf(SpexError)
+      expect((error as SpexError).location?.start.line).toBe(2)
+      expect((error as SpexError).phase).toBe('Parsing')
+    })
+
+    it('should accept a product as the realized object', () => {
+      const testCase = 'realize (x: number, y: number) as PointImpl;'
+      const ast = parseToAst(testCase)
+      const decl = ast.declarations[0] as RealizeDeclaration
+      expect(decl).toMatchObject({
+        object: { kind: 'ProductObject', fields: { x: {}, y: {} } },
+        target: { kind: 'NamedObject', name: 'PointImpl' },
       })
     })
 

@@ -59,11 +59,11 @@ select {
   4. print user-friendly error messages for exceptions
 };
 
-realize TodoCli as (
+realize TodoCli as {
   parse: ParseArgs,
   load: LoadTodosFile,
   save: SaveTodosFile,
   main: PythonTodoCli
-) in PythonCliEnv;
+} in PythonCliEnv;
 
 generate TodoCli in PythonCliEnv;

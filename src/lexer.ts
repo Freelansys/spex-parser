@@ -1,4 +1,4 @@
-import { createToken, Lexer, type CustomPatternMatcherReturn } from 'chevrotain'
+import { createToken, Lexer, type CustomPatternMatcherReturn, type IToken } from 'chevrotain'
 
 export const WhiteSpace = createToken({
   name: 'WhiteSpace',
@@ -82,13 +82,30 @@ export const Comma = createToken({ name: 'Comma', pattern: /,/ })
 export const Semicolon = createToken({ name: 'Semicolon', pattern: /;/ })
 export const Dot = createToken({ name: 'Dot', pattern: /\./ })
 
-// Brace text block (for SELECT { ... })
+// The most recently scanned token, skipping the holes chevrotain may leave in
+// the pre-sized token array it hands to custom patterns.
+function lastScannedToken(tokens: IToken[]): IToken | undefined {
+  for (let i = tokens.length - 1; i >= 0; i--) {
+    const token = tokens[i]
+    if (token !== undefined) return token
+  }
+  return undefined
+}
+
+// Brace text block (for SELECT { ... }). A brace only opens a select block
+// directly after `select`; everywhere else it delimits a decomposition, so the
+// surrounding grammar decides which of the two a `{` belongs to.
 export const SelectBlock = createToken({
   name: 'SelectBlock',
   line_breaks: true,
-  pattern: (text: string, startOffset: number): CustomPatternMatcherReturn | null => {
+  pattern: (
+    text: string,
+    startOffset: number,
+    tokens: IToken[]
+  ): CustomPatternMatcherReturn | null => {
     let i = startOffset
     if (text[i] !== '{') return null
+    if (lastScannedToken(tokens)?.tokenTypeIdx !== SelectTok.tokenTypeIdx) return null
     for (i++; i < text.length; i++) {
       if (text[i] === '\\') {
         i++

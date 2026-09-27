@@ -114,12 +114,24 @@ describe('SpexLexer', () => {
       expect(result.tokens.map((t) => t.tokenType.name)).toEqual(['ArtifactTok'])
     })
 
-    it('should tokenize the text between braces', () => {
-      const result = SpexLexer.tokenize('{hello\nworld}')
+    it('should tokenize the text between braces after select', () => {
+      const result = SpexLexer.tokenize('select {hello\nworld}')
       expect(result.errors).toHaveLength(0)
-      expect(result.tokens).toHaveLength(1)
-      expect(result.tokens[0]?.tokenType.name).toBe('SelectBlock')
-      expect(result.tokens[0]?.image).toBe('{hello\nworld}')
+      expect(result.tokens.map((t) => t.tokenType.name)).toEqual(['SelectTok', 'SelectBlock'])
+      expect(result.tokens[1]?.image).toBe('{hello\nworld}')
+    })
+
+    it('should tokenize braces as separate symbols when they follow another token', () => {
+      const result = SpexLexer.tokenize('as {a: A}')
+      expect(result.errors).toHaveLength(0)
+      expect(result.tokens.map((t) => t.tokenType.name)).toEqual([
+        'AsTok',
+        'LCurly',
+        'Identifier',
+        'Colon',
+        'Identifier',
+        'RCurly',
+      ])
     })
 
     it('should tokenize double quoted string literals', () => {
@@ -209,44 +221,51 @@ describe('SpexLexer', () => {
 
   describe('select block escaping', () => {
     it('should tokenize an empty select block', () => {
-      const result = SpexLexer.tokenize('{}')
+      const result = SpexLexer.tokenize('select {}')
       expect(result.errors).toHaveLength(0)
-      expect(result.tokens.map((t) => t.tokenType.name)).toEqual(['SelectBlock'])
-      expect(result.tokens[0]?.image).toBe('{}')
+      expect(result.tokens.map((t) => t.tokenType.name)).toEqual(['SelectTok', 'SelectBlock'])
+      expect(result.tokens[1]?.image).toBe('{}')
     })
 
     it('should tokenize a select block with an escaped close brace', () => {
-      const result = SpexLexer.tokenize('{end with \\} }')
+      const result = SpexLexer.tokenize('select {end with \\} }')
       expect(result.errors).toHaveLength(0)
-      expect(result.tokens.map((t) => t.tokenType.name)).toEqual(['SelectBlock'])
-      expect(result.tokens[0]?.image).toBe('{end with \\} }')
+      expect(result.tokens.map((t) => t.tokenType.name)).toEqual(['SelectTok', 'SelectBlock'])
+      expect(result.tokens[1]?.image).toBe('{end with \\} }')
     })
 
     it('should tokenize a select block with escaped open and close braces', () => {
-      const result = SpexLexer.tokenize('{match \\{a\\} }')
+      const result = SpexLexer.tokenize('select {match \\{a\\} }')
       expect(result.errors).toHaveLength(0)
-      expect(result.tokens.map((t) => t.tokenType.name)).toEqual(['SelectBlock'])
-      expect(result.tokens[0]?.image).toBe('{match \\{a\\} }')
+      expect(result.tokens.map((t) => t.tokenType.name)).toEqual(['SelectTok', 'SelectBlock'])
+      expect(result.tokens[1]?.image).toBe('{match \\{a\\} }')
     })
 
     it('should tokenize a select block with escaped backslashes', () => {
-      const result = SpexLexer.tokenize('{a \\\\ b}')
+      const result = SpexLexer.tokenize('select {a \\\\ b}')
       expect(result.errors).toHaveLength(0)
-      expect(result.tokens.map((t) => t.tokenType.name)).toEqual(['SelectBlock'])
-      expect(result.tokens[0]?.image).toBe('{a \\\\ b}')
+      expect(result.tokens.map((t) => t.tokenType.name)).toEqual(['SelectTok', 'SelectBlock'])
+      expect(result.tokens[1]?.image).toBe('{a \\\\ b}')
     })
 
     it('should keep backslashes before ordinary characters', () => {
-      const result = SpexLexer.tokenize('{\\d matches}')
+      const result = SpexLexer.tokenize('select {\\d matches}')
       expect(result.errors).toHaveLength(0)
-      expect(result.tokens.map((t) => t.tokenType.name)).toEqual(['SelectBlock'])
-      expect(result.tokens[0]?.image).toBe('{\\d matches}')
+      expect(result.tokens.map((t) => t.tokenType.name)).toEqual(['SelectTok', 'SelectBlock'])
+      expect(result.tokens[1]?.image).toBe('{\\d matches}')
+    })
+
+    it('should tokenize a select block after a comment between select and brace', () => {
+      const result = SpexLexer.tokenize('select /* c */ {a}')
+      expect(result.errors).toHaveLength(0)
+      expect(result.tokens.map((t) => t.tokenType.name)).toEqual(['SelectTok', 'SelectBlock'])
+      expect(result.tokens[1]?.image).toBe('{a}')
     })
 
     it('should fall back to individual symbols when a select block is unterminated', () => {
-      const result = SpexLexer.tokenize('{foo')
+      const result = SpexLexer.tokenize('select {foo')
       expect(result.errors).toHaveLength(0)
-      expect(result.tokens.map((t) => t.tokenType.name)).toEqual(['LCurly', 'Identifier'])
+      expect(result.tokens.map((t) => t.tokenType.name)).toEqual(['SelectTok', 'LCurly', 'Identifier'])
     })
   })
 

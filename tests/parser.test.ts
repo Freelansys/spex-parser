@@ -558,10 +558,54 @@ describe('SpexParser', () => {
       expect(parser.errors).toHaveLength(0)
     })
 
-    it('should parse a realize declaration with product objects', () => {
+    it('should parse a realize declaration with a product object', () => {
       const testCase = 'realize (x: number) as (y: string) in environment;'
       const { parser } = parseInput(testCase)
       expect(parser.errors).toHaveLength(0)
+    })
+
+    it('should parse a realize declaration with a decomposition', () => {
+      const testCase = 'realize Concept as { db: SqlSchema, api: HttpApi } in environment;'
+      const { parser } = parseInput(testCase)
+      expect(parser.errors).toHaveLength(0)
+    })
+
+    it('should parse a realize declaration with a decomposition and trailing comma', () => {
+      const testCase = 'realize Concept as { db: SqlSchema, api: HttpApi, } in environment;'
+      const { parser } = parseInput(testCase)
+      expect(parser.errors).toHaveLength(0)
+    })
+
+    it('should parse a realize declaration with an empty decomposition', () => {
+      const testCase = 'realize Concept as {};'
+      const { parser } = parseInput(testCase)
+      expect(parser.errors).toHaveLength(0)
+    })
+
+    it('should parse a realize declaration with a nested decomposition', () => {
+      const testCase =
+        'realize Concept as { storage: { open: OpenFile, query: SelectTodos }, main: Main } in environment;'
+      const { parser } = parseInput(testCase)
+      expect(parser.errors).toHaveLength(0)
+    })
+
+    it('should parse a realize declaration with product and subobject parts', () => {
+      const testCase =
+        'realize Concept as { point: (x: number, y: number), positive: from number select { are positive } };'
+      const { parser } = parseInput(testCase)
+      expect(parser.errors).toHaveLength(0)
+    })
+
+    it('should not parse a realize declaration with an unterminated decomposition', () => {
+      const testCase = 'realize Concept as { db: SqlSchema;'
+      const { parser } = parseInput(testCase)
+      expect(parser.errors).not.toHaveLength(0)
+    })
+
+    it('should not parse a realize declaration with an unnamed decomposition part', () => {
+      const testCase = 'realize Concept as { : SqlSchema };'
+      const { parser } = parseInput(testCase)
+      expect(parser.errors).not.toHaveLength(0)
     })
 
     it('should parse a realize declaration with exponential objects', () => {

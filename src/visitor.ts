@@ -9,6 +9,9 @@ import type {
   ImportDeclaration,
   GenerateDeclaration,
   RealizeDeclaration,
+  RealizeTarget,
+  Decomposition,
+  DecompositionPart,
   IncludeDeclaration,
   LiteralObject,
   SetObject,
@@ -416,6 +419,34 @@ export class SpexParserVisitor extends BaseSpexVisitor implements ICstVisitor<an
       environment: ctx.environment
         ? this.visit(ctx.environment)
         : { kind: 'NamedObject', name: 'environment', location: locationOf(ctx) },
+      location: locationOf(ctx),
+    }
+  }
+
+  realizeTarget(ctx: any): RealizeTarget {
+    if (ctx.decomposition) {
+      return this.visit(ctx.decomposition)
+    }
+    const target = this.visit(ctx.object)
+    if (target.kind === 'ProductObject') {
+      throw new SpexError(
+        'Parsing',
+        'ambiguous realization target: a product here is a value, not a decomposition of the realized object. Use braces to declare parts — `as { a: A, b: B }` — or name the product to realize a product value — `as SomeProduct`',
+        target.location
+      )
+    }
+    return target
+  }
+
+  decomposition(ctx: any): Decomposition {
+    const parts = (ctx.decompositionPart ?? []).map((part: any) => this.visit(part))
+    return { kind: 'Decomposition', parts, location: locationOf(ctx) }
+  }
+
+  decompositionPart(ctx: any): DecompositionPart {
+    return {
+      name: ctx.Identifier[0].image,
+      object: ctx.decomposition ? this.visit(ctx.decomposition) : this.visit(ctx.object),
       location: locationOf(ctx),
     }
   }

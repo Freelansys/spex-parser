@@ -91,17 +91,17 @@ select {
   7. listen on the configured port
 };
 
-realize TodoWeb as (
+realize TodoWeb as {
   list: ListTodosHandler,
   add: AddTodoHandler,
   complete: CompleteTodoHandler,
-  storage: (
+  storage: {
     connect: ConnectPostgres,
     query: SelectTodos,
     insert: InsertTodo,
     update: UpdateTodo
-  ),
+  },
   main: ExpressTodoWeb
-) in ExpressWebEnv;
+} in ExpressWebEnv;
 
 generate TodoWeb in ExpressWebEnv;

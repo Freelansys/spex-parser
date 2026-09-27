@@ -52,16 +52,16 @@ select {
 };
 ```
 
-`WebApplication` is a concept. It can be realized as a product of more specific concepts:
+`WebApplication` is a concept. It can be realized as a decomposition of more specific concepts:
 
 ```text
 WebApplication
     ── realized-by ──>
-        (
+        {
             database: SQLSchemaDescription,
             backend: ExpressAppDescription,
             frontend: ReactUIDescription
-        )
+        }
 ```
 
 Each of those can be realized further until concrete artifacts are reached. Realization is recursive:
@@ -161,6 +161,8 @@ A product is an artifact formed by combining other artifacts into a structured r
 ```
 
 Consequently, `()` and `unit` are the same object.
+
+Note that a product is written with parentheses, whereas the parts a realized object is [decomposed](#decompositions) into are written with braces. The two are never interchangeable.
 
 ## Coproducts
 
@@ -505,8 +507,8 @@ REALIZATION
 ```
 
 ```text
-PositiveNumber ⊆ Number          -- subobjecting
-WebApplication → (db, be, fe)    -- realization
+PositiveNumber ⊆ Number              -- subobjecting
+WebApplication → { db, be, fe }      -- realization
 ```
 
 ## Concept
@@ -578,16 +580,16 @@ Concept
                           └── realization ──> Artifact
 ```
 
-For example, a `WebApplication` concept might be realized as a product of more specific concepts:
+For example, a `WebApplication` concept might be realized as a decomposition of more specific concepts:
 
 ```text
 WebApplication
     ── realized-by ──>
-        (
+        {
             database: SQLSchemaDescription,
             backend: ExpressAppDescription,
             frontend: ReactUIDescription
-        )
+        }
 ```
 
 Each component is a part/decomposition of the `WebApplication` — not a more specific `WebApplication`.
@@ -609,6 +611,79 @@ realize HttpApi as FlaskHttpApi in Python;
 ```
 
 Realization is recursive: an abstract concept can be realized into objects that are themselves still abstract and require further realization. Code generation is possible when the relevant abstract concepts have reached concrete realizations.
+
+### Decompositions
+
+A realization has two forms. It either points at a single named object, or it decomposes the realized object into named parts:
+
+```spex
+realize HttpApi as FlaskHttpApi in Python;
+
+realize WebApplication as {
+  database: SQLSchema,
+  backend: ExpressApp,
+  frontend: ReactUi
+} in TypeScript;
+```
+
+The two forms are deliberately written differently. A decomposition uses braces, a product uses parentheses. Without that distinction `realize C as (a: A, b: B)` would read both as a product _value_ and as a list of _parts_, and nothing in the syntax would say which one was meant. Parentheses therefore always mean a product, and braces always mean a decomposition:
+
+```text
+as { a: A, b: B }   -- C is decomposed into the parts a and b
+as (a: A, b: B)     -- a single product value — rejected: ambiguous
+as Config           -- Config is a named product object
+```
+
+The object being realized may itself be a product — that is unambiguous, because only the _target_ of a realization is written as a decomposition:
+
+```spex
+realize (x: number, y: number) as PointImpl;
+```
+
+Each part of a decomposition is realized by a single object, which may be a concept, a named object, a literal, or a product:
+
+```spex
+realize Config as {
+  host: "localhost",
+  port: 8080,
+  retries: from number select { is small }
+} in Docker;
+```
+
+Part names are handles. A later object can bring a part into its generation context with `@ref`, just like any other named object:
+
+```spex
+realize WebApplication as {
+  backend: ExpressApp,
+  database: SqlSchema
+} in TypeScript;
+
+create StartApplication as
+from unit -> unit
+select {
+  1. open the database using @database
+  2. start the server with @backend
+};
+```
+
+A part may itself be a decomposition, which groups the parts of a substructure:
+
+```spex
+realize TodoWeb as {
+  storage: {
+    open: OpenDatabase,
+    query: SelectTodos,
+    insert: InsertTodo
+  },
+  handlers: {
+    list: ListTodosHandler,
+    add: AddTodoHandler
+  },
+  main: StartServer
+} in FlaskWeb;
+```
+
+A decomposition with no parts, `{}`, is accepted; there is nothing in it to realize the object by.
 
 ## Relationship Between the Three
 
@@ -717,6 +792,17 @@ create Abs as
 from (z: ComplexNumber) -> number
 select {
   return square root of @z.real^2 + @z.imag^2
+}
+```
+
+The parts of a [decomposition](#decompositions) are named objects and can be referenced the same way, so a later object can build on what a realization produced:
+
+```spex
+create StartApplication as
+from unit -> unit
+select {
+  1. open the database using @database
+  2. start the server with @backend
 }
 ```
 

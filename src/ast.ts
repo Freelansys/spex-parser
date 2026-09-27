@@ -47,10 +47,31 @@ export type GenerateDeclaration = {
   location: Location
 }
 
+// A `realize` target is either a named object or a decomposition. It is
+// deliberately not an arbitrary object expression: a product in target
+// position would read both as a product value and as a decomposition of the
+// realized object.
+export type RealizeTarget = NamedObject | Decomposition
+
+// The parts a realized object is built from. Each part name is a handle other
+// objects can `@ref`, and each part is realized by the given object. A part
+// may itself be a decomposition, which groups the parts of a substructure.
+export type DecompositionPart = {
+  name: string
+  object: ObjectExpression | Decomposition
+  location: Location
+}
+
+export type Decomposition = {
+  kind: 'Decomposition'
+  parts: DecompositionPart[]
+  location: Location
+}
+
 export type RealizeDeclaration = {
   kind: 'RealizeDeclaration'
   object: ObjectExpression
-  target: ObjectExpression
+  target: RealizeTarget
   environment: ObjectExpression
   location: Location
 }
