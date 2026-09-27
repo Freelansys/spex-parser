@@ -720,7 +720,7 @@ describe('SpexParserVisitor', () => {
     })
 
     it('should convert product of literal objects to AST', () => {
-      const testCase = "create Foo as (name: \"John\", age: 42);"
+      const testCase = 'create Foo as (name: "John", age: 42);'
       const ast = parseToAst(testCase)
       const decl = ast.declarations[0] as ObjectDeclaration
       expect(decl.object).toMatchObject({
@@ -1544,7 +1544,8 @@ describe('SpexParserVisitor', () => {
     })
 
     it('should convert subobject with a code constraint to AST', () => {
-      const testCase = 'create double as from number -> number select ```python\nreturn @n * 2\n```;'
+      const testCase =
+        'create double as from number -> number select ```python\nreturn @n * 2\n```;'
       const ast = parseToAst(testCase)
       const decl = ast.declarations[0] as ObjectDeclaration
       expect(decl.object).toMatchObject({

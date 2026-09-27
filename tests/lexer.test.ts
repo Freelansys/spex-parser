@@ -4,9 +4,7 @@ import { SpexLexer } from '../src/lexer.js'
 describe('SpexLexer', () => {
   describe('tokenization', () => {
     it('should tokenize keywords', () => {
-      const result = SpexLexer.tokenize(
-        'create as from select generate import realize in'
-      )
+      const result = SpexLexer.tokenize('create as from select generate import realize in')
       expect(result.errors).toHaveLength(0)
       expect(result.tokens.map((t) => t.tokenType.name)).toEqual([
         'CreateTok',
@@ -102,10 +100,7 @@ describe('SpexLexer', () => {
     it('should tokenize the concept and environment base types', () => {
       const result = SpexLexer.tokenize('concept environment')
       expect(result.errors).toHaveLength(0)
-      expect(result.tokens.map((t) => t.tokenType.name)).toEqual([
-        'ConceptTok',
-        'EnvironmentTok',
-      ])
+      expect(result.tokens.map((t) => t.tokenType.name)).toEqual(['ConceptTok', 'EnvironmentTok'])
     })
 
     it('should tokenize the artifact base type', () => {
@@ -169,10 +164,7 @@ describe('SpexLexer', () => {
     it('should tokenize number literals', () => {
       const result = SpexLexer.tokenize('42 3.14')
       expect(result.errors).toHaveLength(0)
-      expect(result.tokens.map((t) => t.tokenType.name)).toEqual([
-        'NumberLiteral',
-        'NumberLiteral',
-      ])
+      expect(result.tokens.map((t) => t.tokenType.name)).toEqual(['NumberLiteral', 'NumberLiteral'])
       expect(result.tokens.map((t) => t.image)).toEqual(['42', '3.14'])
     })
 
@@ -188,7 +180,7 @@ describe('SpexLexer', () => {
     })
 
     it('should tokenize literal object declarations', () => {
-      const result = SpexLexer.tokenize("create Foo as (name: \"John\", age: 42);")
+      const result = SpexLexer.tokenize('create Foo as (name: "John", age: 42);')
       expect(result.errors).toHaveLength(0)
       expect(result.tokens.map((t) => t.tokenType.name)).toEqual([
         'CreateTok',
@@ -265,7 +257,11 @@ describe('SpexLexer', () => {
     it('should fall back to individual symbols when a select block is unterminated', () => {
       const result = SpexLexer.tokenize('select {foo')
       expect(result.errors).toHaveLength(0)
-      expect(result.tokens.map((t) => t.tokenType.name)).toEqual(['SelectTok', 'LCurly', 'Identifier'])
+      expect(result.tokens.map((t) => t.tokenType.name)).toEqual([
+        'SelectTok',
+        'LCurly',
+        'Identifier',
+      ])
     })
   })
 
@@ -368,10 +364,10 @@ describe('SpexLexer', () => {
     })
 
     it('should tokenize a pattern literal with quotes in char classes', () => {
-      const result = SpexLexer.tokenize("/'([^'\\\\]|\\\\.)*'|\"([^\"\\\\]|\\\\.)*\"/")
+      const result = SpexLexer.tokenize('/\'([^\'\\\\]|\\\\.)*\'|"([^"\\\\]|\\\\.)*"/')
       expect(result.errors).toHaveLength(0)
       expect(result.tokens.map((t) => t.tokenType.name)).toEqual(['PatternLiteral'])
-      expect(result.tokens[0]?.image).toBe("/'([^'\\\\]|\\\\.)*'|\"([^\"\\\\]|\\\\.)*\"/")
+      expect(result.tokens[0]?.image).toBe('/\'([^\'\\\\]|\\\\.)*\'|"([^"\\\\]|\\\\.)*"/')
     })
 
     it('should tokenize an empty pattern', () => {

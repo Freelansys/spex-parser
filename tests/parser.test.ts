@@ -298,7 +298,7 @@ describe('SpexParser', () => {
     })
 
     it('should parse product of literal objects', () => {
-      const testCase = "create Foo as (name: \"John\", age: 42);"
+      const testCase = 'create Foo as (name: "John", age: 42);'
       const { parser } = parseInput(testCase)
       expect(parser.errors).toHaveLength(0)
     })
@@ -405,8 +405,7 @@ describe('SpexParser', () => {
     })
 
     it('should parse pipes on subobjects', () => {
-      const testCase =
-        'create X as from int select { are even } | from int select { are odd };'
+      const testCase = 'create X as from int select { are even } | from int select { are odd };'
       const { parser } = parseInput(testCase)
       expect(parser.errors).toHaveLength(0)
     })

@@ -61,9 +61,7 @@ describe('constantOf', () => {
   })
 
   it('should reject nested non-constants', () => {
-    expect(
-      constantOf(firstObject('create K as (a: (b: "x", c: string));'))
-    ).toBeNull()
+    expect(constantOf(firstObject('create K as (a: (b: "x", c: string));'))).toBeNull()
   })
 
   it('should reject named types', () => {
