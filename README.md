@@ -841,7 +841,13 @@ import EmailAddress from "types.spex";
 Or give it a different alias:
 
 ```spex
-import EmailAddress from "types.spex" as Username;
+import EmailAddress as Username from "types.spex";
+```
+
+Several objects of the same file can be imported in one declaration, each with an alias of its own:
+
+```spex
+import EmailAddress as Username, Password as Secret from "types.spex";
 ```
 
 Or import the whole file:

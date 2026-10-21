@@ -11,6 +11,7 @@ export type {
   Declaration,
   ObjectDeclaration,
   ImportDeclaration,
+  ImportSpecifier,
   GenerateDeclaration,
   RealizeDeclaration,
   RealizeTarget,

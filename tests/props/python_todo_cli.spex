@@ -5,13 +5,7 @@
 -- defined as separate objects, and the concept is realized as a product of
 -- them in the realize statement.
 
-import TodoCli from "todo.spex";
-import Todo from "todo.spex";
-import TodoId from "todo.spex";
-import TodoTitle from "todo.spex";
-import AddTodo from "todo.spex";
-import ListTodos from "todo.spex";
-import CompleteTodo from "todo.spex";
+import TodoCli, Todo, TodoId, TodoTitle, AddTodo, ListTodos, CompleteTodo from "todo.spex";
 import PythonCliEnv from "python_cli_env.spex";
 
 /* Argument parsing. */

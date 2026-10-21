@@ -7,6 +7,7 @@ import type {
   Declaration,
   ObjectDeclaration,
   ImportDeclaration,
+  ImportSpecifier,
   GenerateDeclaration,
   RealizeDeclaration,
   RealizeTarget,
@@ -388,26 +389,29 @@ export class SpexParserVisitor extends BaseSpexVisitor implements ICstVisitor<an
   }
 
   namedImport(ctx: any): ImportDeclaration {
-    const name = ctx.Identifier[0].image
-    const source = stringLiteralValue(ctx.StringLiteral[0].image)
-    const alias = ctx.Identifier[1] ? ctx.Identifier[1].image : null
+    const specifiers = (ctx.importSpecifier ?? []).map((specifier: any) => this.visit(specifier))
     return {
       kind: 'ImportDeclaration',
-      name,
-      source,
-      alias,
+      source: stringLiteralValue(ctx.StringLiteral[0].image),
+      specifiers,
+      namespace: null,
       location: locationOf(ctx),
     }
   }
 
+  importSpecifier(ctx: any): ImportSpecifier {
+    return {
+      name: ctx.Identifier[0].image,
+      alias: ctx.Identifier[1] ? ctx.Identifier[1].image : null,
+    }
+  }
+
   moduleImport(ctx: any): ImportDeclaration {
-    const source = stringLiteralValue(ctx.StringLiteral[0].image)
-    const alias = ctx.Identifier[0].image
     return {
       kind: 'ImportDeclaration',
-      name: null,
-      source,
-      alias,
+      source: stringLiteralValue(ctx.StringLiteral[0].image),
+      specifiers: null,
+      namespace: ctx.Identifier[0].image,
       location: locationOf(ctx),
     }
   }

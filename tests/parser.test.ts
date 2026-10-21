@@ -240,7 +240,19 @@ describe('SpexParser', () => {
     })
 
     it('should parse named import with alias', () => {
-      const testCase = 'import EmailAddress from "types.spex" as Username;'
+      const testCase = 'import EmailAddress as Username from "types.spex";'
+      const { parser } = parseInput(testCase)
+      expect(parser.errors).toHaveLength(0)
+    })
+
+    it('should parse multiple named imports', () => {
+      const testCase = 'import EmailAddress, Password from "types.spex";'
+      const { parser } = parseInput(testCase)
+      expect(parser.errors).toHaveLength(0)
+    })
+
+    it('should parse multiple named imports with aliases', () => {
+      const testCase = 'import EmailAddress as Username, Password as Secret from "types.spex";'
       const { parser } = parseInput(testCase)
       expect(parser.errors).toHaveLength(0)
     })
@@ -249,6 +261,24 @@ describe('SpexParser', () => {
       const testCase = 'import "types.spex" as types;'
       const { parser } = parseInput(testCase)
       expect(parser.errors).toHaveLength(0)
+    })
+
+    it('should not parse an alias after the source', () => {
+      const testCase = 'import EmailAddress from "types.spex" as Username;'
+      const { parser } = parseInput(testCase)
+      expect(parser.errors).not.toHaveLength(0)
+    })
+
+    it('should not parse an import list without commas', () => {
+      const testCase = 'import EmailAddress Password from "types.spex";'
+      const { parser } = parseInput(testCase)
+      expect(parser.errors).not.toHaveLength(0)
+    })
+
+    it('should not parse a trailing comma in an import list', () => {
+      const testCase = 'import EmailAddress, Password, from "types.spex";'
+      const { parser } = parseInput(testCase)
+      expect(parser.errors).not.toHaveLength(0)
     })
   })
 

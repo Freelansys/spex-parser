@@ -28,11 +28,23 @@ export type ObjectDeclaration = {
   location: Location
 }
 
+// One object imported by name: the name it has in the source file, and the
+// name it is known by locally. The alias is null when both are the same.
+export type ImportSpecifier = {
+  name: string
+  alias: string | null
+}
+
+// An import brings objects of another file into scope. A named import lists
+// the objects it brings in; a module import brings in the whole file under a
+// namespace.
 export type ImportDeclaration = {
   kind: 'ImportDeclaration'
-  name: string | null
   source: string
-  alias: string | null
+  // The imported objects, or null when the whole module is imported.
+  specifiers: ImportSpecifier[] | null
+  // The local name of the module, or null when specific objects are imported.
+  namespace: string | null
   location: Location
 }
 

@@ -9,14 +9,14 @@ const __dirname = dirname(__filename)
 
 const fixtures: [string, number][] = [
   ['todo.spex', 17],
-  ['python_cli_env.spex', 3],
-  ['typescript_cli_env.spex', 3],
-  ['flask_web_env.spex', 3],
-  ['express_web_env.spex', 3],
-  ['python_todo_cli.spex', 15],
-  ['typescript_todo_cli.spex', 15],
-  ['flask_todo_web.spex', 21],
-  ['express_todo_web.spex', 21],
+  ['python_cli_env.spex', 2],
+  ['typescript_cli_env.spex', 2],
+  ['flask_web_env.spex', 2],
+  ['express_web_env.spex', 2],
+  ['python_todo_cli.spex', 9],
+  ['typescript_todo_cli.spex', 9],
+  ['flask_todo_web.spex', 13],
+  ['express_todo_web.spex', 13],
 ]
 
 describe('end-to-end', () => {

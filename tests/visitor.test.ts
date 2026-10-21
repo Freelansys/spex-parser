@@ -611,21 +611,51 @@ describe('SpexParserVisitor', () => {
       const decl = ast.declarations[0] as ImportDeclaration
       expect(decl).toMatchObject({
         kind: 'ImportDeclaration',
-        name: 'EmailAddress',
         source: 'types.spex',
-        alias: null,
+        specifiers: [{ name: 'EmailAddress', alias: null }],
+        namespace: null,
       })
     })
 
     it('should convert named import with alias to AST', () => {
-      const testCase = 'import EmailAddress from "types.spex" as Username;'
+      const testCase = 'import EmailAddress as Username from "types.spex";'
       const ast = parseToAst(testCase)
       const decl = ast.declarations[0] as ImportDeclaration
       expect(decl).toMatchObject({
         kind: 'ImportDeclaration',
-        name: 'EmailAddress',
         source: 'types.spex',
-        alias: 'Username',
+        specifiers: [{ name: 'EmailAddress', alias: 'Username' }],
+        namespace: null,
+      })
+    })
+
+    it('should convert multiple named imports to AST', () => {
+      const testCase = 'import EmailAddress, Password from "types.spex";'
+      const ast = parseToAst(testCase)
+      const decl = ast.declarations[0] as ImportDeclaration
+      expect(decl).toMatchObject({
+        kind: 'ImportDeclaration',
+        source: 'types.spex',
+        specifiers: [
+          { name: 'EmailAddress', alias: null },
+          { name: 'Password', alias: null },
+        ],
+        namespace: null,
+      })
+    })
+
+    it('should convert multiple named imports with aliases to AST', () => {
+      const testCase = 'import EmailAddress as Username, Password as Secret from "types.spex";'
+      const ast = parseToAst(testCase)
+      const decl = ast.declarations[0] as ImportDeclaration
+      expect(decl).toMatchObject({
+        kind: 'ImportDeclaration',
+        source: 'types.spex',
+        specifiers: [
+          { name: 'EmailAddress', alias: 'Username' },
+          { name: 'Password', alias: 'Secret' },
+        ],
+        namespace: null,
       })
     })
 
@@ -635,21 +665,21 @@ describe('SpexParserVisitor', () => {
       const decl = ast.declarations[0] as ImportDeclaration
       expect(decl).toMatchObject({
         kind: 'ImportDeclaration',
-        name: null,
         source: 'types.spex',
-        alias: 'types',
+        specifiers: null,
+        namespace: 'types',
       })
     })
 
     it('should convert named import with single quoted source to AST', () => {
-      const testCase = "import EmailAddress from 'types.spex' as Username;"
+      const testCase = "import EmailAddress as Username from 'types.spex';"
       const ast = parseToAst(testCase)
       const decl = ast.declarations[0] as ImportDeclaration
       expect(decl).toMatchObject({
         kind: 'ImportDeclaration',
-        name: 'EmailAddress',
         source: 'types.spex',
-        alias: 'Username',
+        specifiers: [{ name: 'EmailAddress', alias: 'Username' }],
+        namespace: null,
       })
     })
 
@@ -658,6 +688,11 @@ describe('SpexParserVisitor', () => {
       const ast = parseToAst(testCase)
       const decl = ast.declarations[0] as ImportDeclaration
       expect(decl.source).toBe('dir\\types.spex')
+    })
+
+    it('should reject an alias after the source', () => {
+      const testCase = 'import EmailAddress from "types.spex" as Username;'
+      expect(() => parseToAst(testCase)).toThrow(SpexError)
     })
   })
 

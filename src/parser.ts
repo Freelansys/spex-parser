@@ -213,9 +213,17 @@ export class SpexParser extends CstParser {
   })
 
   private namedImport = this.RULE('namedImport', () => {
-    this.CONSUME(Identifier)
+    this.SUBRULE(this.importSpecifier)
+    this.MANY(() => {
+      this.CONSUME(Comma)
+      this.SUBRULE2(this.importSpecifier)
+    })
     this.CONSUME(FromTok)
     this.CONSUME(StringLiteral)
+  })
+
+  private importSpecifier = this.RULE('importSpecifier', () => {
+    this.CONSUME(Identifier)
     this.OPTION(() => {
       this.CONSUME(AsTok)
       this.CONSUME2(Identifier)

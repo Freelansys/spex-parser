@@ -6,15 +6,7 @@
 -- as a product of them in the realize statement. Express handlers receive a
 -- request and a response and write to the response.
 
-import TodoWeb from "todo.spex";
-import Todo from "todo.spex";
-import TodoId from "todo.spex";
-import TodoTitle from "todo.spex";
-import AddTodo from "todo.spex";
-import ListTodos from "todo.spex";
-import CompleteTodo from "todo.spex";
-import HttpRequest from "todo.spex";
-import HttpResponse from "todo.spex";
+import TodoWeb, Todo, TodoId, TodoTitle, AddTodo, ListTodos, CompleteTodo, HttpRequest, HttpResponse from "todo.spex";
 import ExpressWebEnv from "express_web_env.spex";
 
 -- TODO: realize the shared HttpRequest and HttpResponse objects using the

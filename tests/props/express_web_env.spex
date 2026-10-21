@@ -3,8 +3,7 @@
 -- A subobject of the shared Web environment intersected with the shared
 -- TypeScript environment.
 
-import Web from "todo.spex";
-import TypeScript from "todo.spex";
+import Web, TypeScript from "todo.spex";
 
 create ExpressWebEnv as
 from Web intersect TypeScript
