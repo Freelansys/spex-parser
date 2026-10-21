@@ -626,15 +626,15 @@ realize WebApplication as {
 } in TypeScript;
 ```
 
-The two forms are deliberately written differently. A decomposition uses braces, a product uses parentheses. Without that distinction `realize C as (a: A, b: B)` would read both as a product _value_ and as a list of _parts_, and nothing in the syntax would say which one was meant. Parentheses therefore always mean a product, and braces always mean a decomposition:
+The two forms are deliberately written differently. A decomposition uses braces, a product uses parentheses. Because braces mark a decomposition, parentheses are never ambiguous — they always mean a product:
 
 ```text
 as { a: A, b: B }   -- C is decomposed into the parts a and b
-as (a: A, b: B)     -- a single product value — rejected: ambiguous
+as (a: A, b: B)     -- a single product value
 as Config           -- Config is a named product object
 ```
 
-The object being realized may itself be a product — that is unambiguous, because only the _target_ of a realization is written as a decomposition:
+The object being realized may itself be a product as well:
 
 ```spex
 realize (x: number, y: number) as PointImpl;

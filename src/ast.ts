@@ -59,11 +59,10 @@ export type GenerateDeclaration = {
   location: Location
 }
 
-// A `realize` target is either a named object or a decomposition. It is
-// deliberately not an arbitrary object expression: a product in target
-// position would read both as a product value and as a decomposition of the
-// realized object.
-export type RealizeTarget = NamedObject | Decomposition
+// A `realize` target is either an object expression or a decomposition. A
+// product in target position is not ambiguous: braces mark a decomposition, so
+// parentheses always mean a product value.
+export type RealizeTarget = ObjectExpression | Decomposition
 
 // The parts a realized object is built from. Each part name is a handle other
 // objects can `@ref`, and each part is realized by the given object. A part

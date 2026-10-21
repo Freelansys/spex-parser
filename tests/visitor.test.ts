@@ -1438,28 +1438,29 @@ describe('SpexParserVisitor', () => {
       expect(target.parts[0]?.location.start.line).toBe(1)
     })
 
-    it('should reject a product as a realization target', () => {
+    it('should accept a product as a realization target', () => {
       const testCase = 'realize Concept as (a: A, b: B) in MyEnv;'
-      expect(() => parseToAst(testCase)).toThrow(SpexError)
-      expect(() => parseToAst(testCase)).toThrow(/ambiguous realization target/)
+      const ast = parseToAst(testCase)
+      const decl = ast.declarations[0] as RealizeDeclaration
+      expect(decl).toMatchObject({
+        target: {
+          kind: 'ProductObject',
+          fields: {
+            a: { kind: 'NamedObject', name: 'A' },
+            b: { kind: 'NamedObject', name: 'B' },
+          },
+        },
+      })
     })
 
-    it('should reject a product as a realization target behind parentheses', () => {
+    it('should accept a product as a realization target behind parentheses', () => {
       const testCase = 'realize Concept as ((a: A));'
-      expect(() => parseToAst(testCase)).toThrow(/ambiguous realization target/)
-    })
-
-    it('should report the location of a rejected realization target', () => {
-      const testCase = 'create X as string;\nrealize Concept as (a: A);'
-      let error: unknown
-      try {
-        parseToAst(testCase)
-      } catch (e) {
-        error = e
-      }
-      expect(error).toBeInstanceOf(SpexError)
-      expect((error as SpexError).location?.start.line).toBe(2)
-      expect((error as SpexError).phase).toBe('Parsing')
+      const ast = parseToAst(testCase)
+      const decl = ast.declarations[0] as RealizeDeclaration
+      expect(decl.target).toMatchObject({
+        kind: 'ProductObject',
+        fields: { a: { kind: 'NamedObject', name: 'A' } },
+      })
     })
 
     it('should accept a product as the realized object', () => {

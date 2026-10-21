@@ -431,15 +431,7 @@ export class SpexParserVisitor extends BaseSpexVisitor implements ICstVisitor<an
     if (ctx.decomposition) {
       return this.visit(ctx.decomposition)
     }
-    const target = this.visit(ctx.object)
-    if (target.kind === 'ProductObject') {
-      throw new SpexError(
-        'Parsing',
-        'ambiguous realization target: a product here is a value, not a decomposition of the realized object. Use braces to declare parts — `as { a: A, b: B }` — or name the product to realize a product value — `as SomeProduct`',
-        target.location
-      )
-    }
-    return target
+    return this.visit(ctx.object)
   }
 
   decomposition(ctx: any): Decomposition {
