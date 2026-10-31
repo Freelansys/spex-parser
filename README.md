@@ -685,6 +685,31 @@ realize TodoWeb as {
 
 A decomposition with no parts, `{}`, is accepted; there is nothing in it to realize the object by.
 
+### Entry Points
+
+A realization can be built as a library or as a program. By default it is a library: its artifacts are produced, and nothing calls them. To build a program, the realization's `with` clause marks the part the environment launches when the realization is run as its `entry`:
+
+```spex
+realize TodoCli as {
+  parse: ParseArgs,
+  load: LoadTodosFile,
+  save: SaveTodosFile,
+  main: Main
+} in PythonCli with main as entry;
+```
+
+The entry is a part of the decomposition, or a dotted path to a nested part (`with server.start as entry`). When the realization points at a single object, the entry names that object:
+
+```spex
+realize TodoUi as Main in PythonCli with Main as entry;
+```
+
+Being the entry point is a property of the realization, not of the artifact. `Main` stays exactly what its own pattern describes, and the same object can be the entry of one realization and a plain library function in another. Starting the program is the environment's job: the code that receives the process arguments and calls the entry (a `__main__` module, a bin script, a `<script>` tag) is a separate launcher artifact produced alongside the realization. It is not part of the entry object.
+
+How the environment invokes programs belongs in the environment's own pattern, for example whether the arguments include the program name and how a return value becomes an exit code. What the entry receives belongs in the entry object's type.
+
+The `with` clause lists properties of a realization, joined by `and`, each in the form `<part> as <property>`. `entry` is currently the only property, and a realization has at most one entry. `with`, `and`, and `entry` are contextual keywords, so they remain usable as names.
+
 ## Relationship Between the Three
 
 The overall model connects the specification to concrete artifacts:
@@ -1145,7 +1170,20 @@ select {
 ## Code Generation
 
 ```spex
-generate MyTodo;
+create TodoCli as
+from concept
+select {
+  manage todos from the command line
+};
+
+realize TodoCli as {
+  parse: ParseCliArgs,
+  load: LoadTodos,
+  save: SaveTodos,
+  main: Main
+} in PythonCli with main as entry;
+
+generate TodoCli;
 ```
 
-This triggers generation of the complete CLI application — in every environment in which it is realized — and all required dependencies.
+This triggers generation of the complete CLI application — in every environment in which it is realized — and all required dependencies. Because the realization names `main` as its entry, the result is a runnable program rather than a library.

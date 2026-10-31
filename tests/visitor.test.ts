@@ -1397,6 +1397,61 @@ describe('SpexParserVisitor', () => {
       })
     })
 
+    it('should leave the entry null when there is no entry clause', () => {
+      const ast = parseToAst('realize Shape as Circle in environment;')
+      expect((ast.declarations[0] as RealizeDeclaration).entry).toBeNull()
+    })
+
+    it('should record the entry of a realize declaration', () => {
+      const testCase =
+        'realize TodoCli as { parse: ParseArgs, main: Main } in CliEnv with main as entry;'
+      const ast = parseToAst(testCase)
+      expect(ast.declarations[0]).toMatchObject({
+        kind: 'RealizeDeclaration',
+        environment: { kind: 'NamedObject', name: 'CliEnv' },
+        entry: 'main',
+      })
+    })
+
+    it('should record a nested entry as a dotted path', () => {
+      const testCase =
+        'realize Web as { server: { start: StartServer } } in Env with server.start as entry;'
+      const ast = parseToAst(testCase)
+      expect((ast.declarations[0] as RealizeDeclaration).entry).toBe('server.start')
+    })
+
+    it('should reject a realization with two entries', () => {
+      const testCase = 'realize A as { a: A1, b: B1 } in Env with a as entry and b as entry;'
+      expect(() => parseToAst(testCase)).toThrow(SpexError)
+      expect(() => parseToAst(testCase)).toThrow('A realization can have only one entry')
+    })
+
+    it('should keep with, and, and entry usable as names', () => {
+      const testCase = 'realize App as { with: W, and: A } in Env with and as entry;'
+      const decl = parseToAst(testCase).declarations[0] as RealizeDeclaration
+      expect(decl.entry).toBe('and')
+      expect(decl.target).toMatchObject({ parts: [{ name: 'with' }, { name: 'and' }] })
+    })
+
+    it('should keep entry usable as a name', () => {
+      const testCase =
+        'create entry as string;\nrealize App as { entry: Main } in Env with entry as entry;\ngenerate entry;'
+      const ast = parseToAst(testCase)
+      expect(ast.declarations).toHaveLength(3)
+      expect(ast.declarations[0]).toMatchObject({ kind: 'ObjectDeclaration', name: 'entry' })
+      expect(ast.declarations[1]).toMatchObject({
+        target: { parts: [{ name: 'entry', object: { kind: 'NamedObject', name: 'Main' } }] },
+        entry: 'entry',
+      })
+      expect(ast.declarations[2]).toMatchObject({ kind: 'GenerateDeclaration', name: 'entry' })
+    })
+
+    it('should include the with clause in the realize location', () => {
+      const testCase = 'realize A as Main in Env with Main as entry;'
+      const decl = parseToAst(testCase).declarations[0] as RealizeDeclaration
+      expect(testCase.slice(decl.location.start.offset, decl.location.end.offset)).toBe(testCase)
+    })
+
     it('should keep a product part value inside a decomposition', () => {
       const testCase = 'realize Point as { at: (x: number, y: number) };'
       const ast = parseToAst(testCase)

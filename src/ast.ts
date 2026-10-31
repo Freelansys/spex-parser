@@ -79,11 +79,17 @@ export type Decomposition = {
   location: Location
 }
 
+// The optional `with` clause lists properties of the realization, joined by
+// `and`. `with <path> as entry` names what the environment launches when the
+// realization is run as a program: a part of the decomposition (a dotted path
+// for a nested part) or the realizing object itself. Without an entry, the
+// realization is a library and nothing is launched.
 export type RealizeDeclaration = {
   kind: 'RealizeDeclaration'
   object: ObjectExpression
   target: RealizeTarget
   environment: ObjectExpression
+  entry: string | null
   location: Location
 }
 

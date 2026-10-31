@@ -13,6 +13,9 @@ import {
   RealizeTok,
   InTok,
   IncludeTok,
+  WithTok,
+  AndTok,
+  EntryTok,
   ArrowTok,
   PipeTok,
   SelectBlock,
@@ -255,7 +258,31 @@ export class SpexParser extends CstParser {
       this.CONSUME(InTok)
       this.SUBRULE3(this.setObject, { LABEL: 'environment' })
     })
+    this.OPTION2(() => {
+      this.CONSUME(WithTok)
+      this.SUBRULE(this.realizationProperty)
+      this.MANY(() => {
+        this.CONSUME(AndTok)
+        this.SUBRULE2(this.realizationProperty)
+      })
+    })
     this.CONSUME(Semicolon)
+  })
+
+  // One property of a realization, `<part path> as <property>`. `entry` is the
+  // only property so far; more are added as alternatives of the inner OR.
+  private realizationProperty = this.RULE('realizationProperty', () => {
+    this.SUBRULE(this.partPath)
+    this.CONSUME(AsTok)
+    this.OR([{ ALT: () => this.CONSUME(EntryTok) }])
+  })
+
+  private partPath = this.RULE('partPath', () => {
+    this.CONSUME(Identifier)
+    this.MANY(() => {
+      this.CONSUME(Dot)
+      this.CONSUME2(Identifier)
+    })
   })
 
   private realizeTarget = this.RULE('realizeTarget', () => {

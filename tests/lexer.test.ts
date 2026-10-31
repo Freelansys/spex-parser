@@ -89,6 +89,19 @@ describe('SpexLexer', () => {
       ])
     })
 
+    it('should tokenize the with clause keywords in the Identifier category', () => {
+      const result = SpexLexer.tokenize('with AND entry entrypoint android without')
+      expect(result.errors).toHaveLength(0)
+      expect(result.tokens.map((t) => t.tokenType.name)).toEqual([
+        'WithTok',
+        'AndTok',
+        'EntryTok',
+        'Identifier',
+        'Identifier',
+        'Identifier',
+      ])
+    })
+
     it('should handle keywords with word boundary', () => {
       const result = SpexLexer.tokenize(
         'createfoo foocreate asfoo fooas fooselect selectfoo foofrom fromfoo generatefoo foogenerate importfoo fooimport artifactfoo fooartifact conceptfoo fooconcept environmentfoo fooenvironment realizefoo foorealize info fooin'

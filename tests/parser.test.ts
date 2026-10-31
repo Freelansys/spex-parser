@@ -655,6 +655,50 @@ describe('SpexParser', () => {
       expect(parser.errors).toHaveLength(0)
     })
 
+    it('should parse a realize declaration with an entry', () => {
+      const testCase =
+        'realize TodoCli as { parse: ParseArgs, main: Main } in CliEnv with main as entry;'
+      const { parser } = parseInput(testCase)
+      expect(parser.errors).toHaveLength(0)
+    })
+
+    it('should parse a realize declaration with an entry and no environment', () => {
+      const testCase = 'realize TodoUi as Main WITH Main AS ENTRY;'
+      const { parser } = parseInput(testCase)
+      expect(parser.errors).toHaveLength(0)
+    })
+
+    it('should parse a realize declaration with a nested entry path', () => {
+      const testCase =
+        'realize Web as { server: { start: StartServer } } in Env with server.start as entry;'
+      const { parser } = parseInput(testCase)
+      expect(parser.errors).toHaveLength(0)
+    })
+
+    it('should not parse a realize declaration with an entry before the environment', () => {
+      const testCase = 'realize A as { main: Main } with main as entry in Env;'
+      const { parser } = parseInput(testCase)
+      expect(parser.errors).not.toHaveLength(0)
+    })
+
+    it('should parse a realize declaration with properties joined by and', () => {
+      const testCase = 'realize A as { main: Main } in Env with main as entry and main as entry;'
+      const { parser } = parseInput(testCase)
+      expect(parser.errors).toHaveLength(0)
+    })
+
+    it('should not parse an unknown realize property', () => {
+      const testCase = 'realize A as { main: Main } in Env with main as launcher;'
+      const { parser } = parseInput(testCase)
+      expect(parser.errors).not.toHaveLength(0)
+    })
+
+    it('should not parse a realize property without a name', () => {
+      const testCase = 'realize A as { main: Main } in Env with main;'
+      const { parser } = parseInput(testCase)
+      expect(parser.errors).not.toHaveLength(0)
+    })
+
     it('should parse a realize declaration mixed with other declarations', () => {
       const testCase = 'create A as string;\nrealize A as B in MyEnv;\ngenerate A;'
       const { parser } = parseInput(testCase)

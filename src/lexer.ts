@@ -236,6 +236,25 @@ export const Identifier = createToken({
   pattern: /[a-zA-Z_][a-zA-Z0-9_]*/,
 })
 
+// The keywords of a realization's `with` clause are contextual: they fall into
+// the Identifier category, so they stay usable as names (e.g. a decomposition
+// part called `entry`).
+export const WithTok = createToken({
+  name: 'WithTok',
+  pattern: /with\b/i,
+  categories: [Identifier],
+})
+export const AndTok = createToken({
+  name: 'AndTok',
+  pattern: /and\b/i,
+  categories: [Identifier],
+})
+export const EntryTok = createToken({
+  name: 'EntryTok',
+  pattern: /entry\b/i,
+  categories: [Identifier],
+})
+
 export const allTokens = [
   WhiteSpace,
   LineComment,
@@ -253,6 +272,9 @@ export const allTokens = [
   RealizeTok,
   InTok,
   IncludeTok,
+  WithTok,
+  AndTok,
+  EntryTok,
 
   ArrowTok,
   PipeTok,

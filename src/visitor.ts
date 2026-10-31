@@ -448,6 +448,18 @@ export class SpexParserVisitor extends BaseSpexVisitor implements ICstVisitor<an
   }
 
   realizeDeclaration(ctx: any): RealizeDeclaration {
+    let entry: string | null = null
+    for (const property of ctx.realizationProperty ?? []) {
+      const { path } = this.visit(property)
+      if (entry !== null) {
+        throw new SpexError(
+          'Parsing',
+          'A realization can have only one entry',
+          locationOf(property.children)
+        )
+      }
+      entry = path
+    }
     return {
       kind: 'RealizeDeclaration',
       object: this.visit(ctx.object),
@@ -455,8 +467,17 @@ export class SpexParserVisitor extends BaseSpexVisitor implements ICstVisitor<an
       environment: ctx.environment
         ? this.visit(ctx.environment)
         : { kind: 'NamedObject', name: 'environment', location: locationOf(ctx) },
+      entry,
       location: locationOf(ctx),
     }
+  }
+
+  realizationProperty(ctx: any): { path: string } {
+    return { path: this.visit(ctx.partPath) }
+  }
+
+  partPath(ctx: any): string {
+    return ctx.Identifier.map((token: IToken) => token.image).join('.')
   }
 
   includeDeclaration(ctx: any): IncludeDeclaration {

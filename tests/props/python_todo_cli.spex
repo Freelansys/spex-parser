@@ -58,6 +58,6 @@ realize TodoCli as {
   load: LoadTodosFile,
   save: SaveTodosFile,
   main: PythonTodoCli
-} in PythonCliEnv;
+} in PythonCliEnv with main as entry;
 
 generate TodoCli in PythonCliEnv;
