@@ -1,9 +1,10 @@
 import type { Location } from './ast.js'
 
 // The phase of the pipeline in which a SpexError was raised.
-export type SpexErrorPhase = 'Lexing' | 'Parsing'
+export type SpexErrorPhase = 'Lexing' | 'Parsing' | 'Printing'
 
-// A syntax error raised while lexing or parsing a Spex file.
+// An error raised while lexing or parsing a Spex file, or while printing an
+// AST that has no Spex text.
 // Unlike a plain Error, it carries the source position of the offending
 // input as structured data in `location` (when available) and keeps the
 // underlying engine error(s) in `underlying` instead of only stringifying

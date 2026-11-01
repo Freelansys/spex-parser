@@ -1,6 +1,7 @@
 export { SpexLexer } from './lexer.js'
 export { SpexParser } from './parser.js'
 export { SpexParserVisitor, parseToAst, parseConstraint } from './visitor.js'
+export { printFile, printDeclaration, printExpression } from './printer.js'
 export { SpexError } from './errors.js'
 export type { SpexErrorPhase } from './errors.js'
 export { constantOf } from './constants.js'

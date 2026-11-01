@@ -997,6 +997,21 @@ A concept or artifact may be realized in several environments. Without `in`, iss
 
 ---
 
+# Printing Spex
+
+The package turns Spex into an AST and back. `parseToAst` reads Spex text; `printFile`, `printDeclaration`, and `printExpression` write an AST, or part of one, as Spex text. A tool can therefore build or change declarations as trees and still keep the specification as Spex that people read:
+
+```ts
+import { parseToAst, printFile } from 'spex-parser'
+
+const ast = parseToAst(source)
+const text = printFile(ast.declarations)
+```
+
+Printing is the inverse of parsing up to locations and comments: parsing the printed text gives back the same tree, and printing that tree again gives back the same text. Comments are not part of the AST, so they are not printed. The printer adds parentheses only where precedence needs them and writes each declaration in a fixed layout. A structured or code pattern whose body contains ` ``` ` cannot be fenced, and printing it raises a `SpexError`.
+
+---
+
 # Why SQL?
 
 Spex uses SQL-inspired syntax because developers already understand:
