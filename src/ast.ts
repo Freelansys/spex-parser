@@ -176,10 +176,23 @@ export type SubObjectConstraint =
       parts: ConstraintPart[]
     }
 
+// A constraint of a `subject to` list. The subobject is the members that meet
+// its `select` pattern and every constraint; where the pattern guides how the
+// object is produced, each constraint is an obligation the produced object
+// must be shown to meet, e.g. a test. A name lets failures and records point
+// at the constraint across edits of its wording.
+export type SubjectToConstraint = {
+  name: string | null
+  pattern: SubObjectConstraint
+  location: Location
+}
+
 export type SubObject = {
   kind: 'SubObject'
   base: ObjectExpression
   constraint: SubObjectConstraint
+  // The `subject to` constraints, empty when there is no such clause.
+  constraints: SubjectToConstraint[]
   location: Location
 }
 

@@ -421,6 +421,44 @@ Subobjects are themselves objects so they can be subobjected further. A good heu
 
 > "from `object` select those that `{pattern}`".
 
+### Subject To
+
+A `subject to` clause after the pattern lists the constraints the object must meet. It is shaped like a constrained optimization problem: `select` says what the object is, and `subject to` says what must hold of it:
+
+```spex
+create ReadTodosFromJsonFile as
+from (path: string) -> Todo[]
+select {
+  read the JSON file at @path and return all the todo entries inside
+} subject to [
+  EmptyWhenMissing: { returns an empty list if there is no file at @path yet },
+  { a todo inserted with @InsertTodoIntoJsonFile is among those it returns },
+];
+```
+
+Each constraint is a pattern of any of the three [kinds](#pattern-kinds). A code constraint is the test itself and runs as written. A natural-language or structured constraint is turned into a test. A constraint can be named, `Name: pattern`, so failures and records can point at it even when its wording changes; names within one list are unique. The list accepts a trailing comma.
+
+In terms of membership, `subject to` adds nothing new: `from A select P subject to [C]` is the same object as `(from A select P) INTERSECT (from A select C)`. The two parts differ in what they oblige. The pattern guides how the object is produced; for an exponential, it describes what the function computes and how. The constraints describe observable behavior, and the produced object must be shown to meet each of them.
+
+`subject to` applies to every subobject:
+
+- On an artifact, its constraints are tests of the artifact, such as unit tests of a function.
+- On a concept, they constrain every program that realizes it, and they are scenarios run against the program:
+
+  ```spex
+  create TodoConcept as
+  from concept
+  select {
+    manage a list of todos
+  } subject to [
+    { a todo that was added is listed, also after the program is run again },
+  ];
+  ```
+
+- On an environment, they are checks of the environment artifact, such as that a given interpreter version is installed.
+
+The clause belongs to the `from ... select ...` form and binds tighter than set operations, so `from A select P subject to [C] UNION B` constrains only the subobject. `subject` and `to` are contextual keywords, so they remain usable as names.
+
 ## Set Operations
 
 Objects that live in a common universe can be combined with the set operations `UNION`, `INTERSECT`, and `EXCEPT`:

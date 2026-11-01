@@ -750,4 +750,65 @@ describe('SpexParser', () => {
       expect(parser.errors).not.toHaveLength(0)
     })
   })
+
+  describe('subject to clause', () => {
+    it('should parse a subobject subject to constraints', () => {
+      const testCase =
+        'create R as from (path: string) -> Todo[] select { read @path } subject to [ { returns [] when missing }, { lists inserted todos } ];'
+      const { parser } = parseInput(testCase)
+      expect(parser.errors).toHaveLength(0)
+    })
+
+    it('should parse named, code, and structured constraints with a trailing comma', () => {
+      const testCase = [
+        'create R as from string -> number select { count } subject to [',
+        '  Empty: { returns 0 for the empty string },',
+        '  Code: ```python',
+        'assert R("") == 0',
+        '```,',
+        '  ```',
+        'if R("a") == 1 { return true }',
+        '```,',
+        '];',
+      ].join('\n')
+      const { parser } = parseInput(testCase)
+      expect(parser.errors).toHaveLength(0)
+    })
+
+    it('should parse an empty subject to list', () => {
+      const { parser } = parseInput(
+        'create R as from number select { are positive } subject to [];'
+      )
+      expect(parser.errors).toHaveLength(0)
+    })
+
+    it('should parse subject to case-insensitively', () => {
+      const { parser } = parseInput('create R as from number select { a } SUBJECT TO [ { b } ];')
+      expect(parser.errors).toHaveLength(0)
+    })
+
+    it('should parse subject to on concepts and environments', () => {
+      const testCase =
+        'create T as from concept select { todos } subject to [ { added todos are listed } ];\n' +
+        'create E as from environment select { python } subject to [ { python 3.12 runs } ];'
+      const { parser } = parseInput(testCase)
+      expect(parser.errors).toHaveLength(0)
+    })
+
+    it('should parse a subobject with constraints inside a set operation', () => {
+      const testCase = 'create R as from A select { a } subject to [ { b } ] UNION B;'
+      const { parser } = parseInput(testCase)
+      expect(parser.errors).toHaveLength(0)
+    })
+
+    it('should not parse subject to without select', () => {
+      const { parser } = parseInput('create R as A subject to [ { b } ];')
+      expect(parser.errors).not.toHaveLength(0)
+    })
+
+    it('should not parse subject to without a list', () => {
+      const { parser } = parseInput('create R as from A select { a } subject to { b };')
+      expect(parser.errors).not.toHaveLength(0)
+    })
+  })
 })

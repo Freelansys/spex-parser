@@ -9,6 +9,7 @@ import type {
   Decomposition,
   IncludeDeclaration,
   Constraint,
+  SubObject,
 } from '../src/ast.js'
 
 function stripLocations(value: any): any {
@@ -1688,6 +1689,107 @@ describe('SpexParserVisitor', () => {
           },
           port: { kind: 'NamedObject', name: 'number' },
         },
+      })
+    })
+  })
+
+  describe('subject to clause', () => {
+    function subObjectOf(code: string): SubObject {
+      return (parseToAst(code).declarations[0] as ObjectDeclaration).object as SubObject
+    }
+
+    it('should have no constraints without a subject to clause', () => {
+      expect(subObjectOf('create P as from number select { are positive };').constraints).toEqual(
+        []
+      )
+    })
+
+    it('should convert subject to constraints to AST', () => {
+      const object = subObjectOf(
+        'create R as from (path: string) -> Todo[] select { read @path } subject to [\n' +
+          '  EmptyWhenMissing: { returns an empty list if there is no file at @path },\n' +
+          '  { a todo inserted with @InsertTodo is among those it returns },\n' +
+          '];'
+      )
+      expect(object.constraint).toMatchObject({ type: 'NaturalLanguage', raw: 'read @path' })
+      expect(stripLocations(object.constraints)).toEqual([
+        {
+          name: 'EmptyWhenMissing',
+          pattern: {
+            type: 'NaturalLanguage',
+            raw: 'returns an empty list if there is no file at @path',
+            parts: [
+              { kind: 'ConstraintText', text: 'returns an empty list if there is no file at ' },
+              { kind: 'ReferenceDirective', name: 'path' },
+            ],
+          },
+        },
+        {
+          name: null,
+          pattern: {
+            type: 'NaturalLanguage',
+            raw: 'a todo inserted with @InsertTodo is among those it returns',
+            parts: [
+              { kind: 'ConstraintText', text: 'a todo inserted with ' },
+              { kind: 'ReferenceDirective', name: 'InsertTodo' },
+              { kind: 'ConstraintText', text: ' is among those it returns' },
+            ],
+          },
+        },
+      ])
+    })
+
+    it('should convert code and structured constraints to AST', () => {
+      const object = subObjectOf(
+        [
+          'create R as from string -> number select { count } subject to [',
+          '  Code: ```python',
+          'assert @R("") == 0',
+          '```,',
+          '  ```',
+          'if R("a") == 1 { return true }',
+          '```',
+          '];',
+        ].join('\n')
+      )
+      expect(object.constraints).toMatchObject([
+        { name: 'Code', pattern: { type: 'Code', language: 'python', body: 'assert @R("") == 0' } },
+        { name: null, pattern: { type: 'Structured', raw: 'if R("a") == 1 { return true }' } },
+      ])
+    })
+
+    it('should attach constraints to the subobject inside a set operation', () => {
+      const decl = parseToAst('create R as from A select { a } subject to [ { b } ] UNION B;')
+        .declarations[0] as ObjectDeclaration
+      expect(decl.object).toMatchObject({
+        kind: 'SetUnionObject',
+        left: { kind: 'SubObject', constraints: [{ pattern: { raw: 'b' } }] },
+        right: { kind: 'NamedObject', name: 'B' },
+      })
+    })
+
+    it('should reject duplicate constraint names', () => {
+      const code = 'create R as from A select { a } subject to [ X: { b }, X: { c } ];'
+      expect(() => parseToAst(code)).toThrow(SpexError)
+      expect(() => parseToAst(code)).toThrow("Duplicate constraint name 'X'")
+    })
+
+    it('should locate a constraint in the source', () => {
+      const code = 'create R as from A select { a } subject to [ Named: { b } ];'
+      const constraint = subObjectOf(code).constraints[0]!
+      expect(code.slice(constraint.location.start.offset, constraint.location.end.offset)).toBe(
+        'Named: { b }'
+      )
+    })
+
+    it('should keep subject and to usable as names', () => {
+      const object = subObjectOf(
+        'create R as from (subject: string, to: string) -> unit select { send } subject to [ to: { b } ];'
+      )
+      expect(object.constraints[0]?.name).toBe('to')
+      expect(object.base).toMatchObject({
+        kind: 'ExponentialObject',
+        exponent: { kind: 'ProductObject', fields: { subject: {}, to: {} } },
       })
     })
   })

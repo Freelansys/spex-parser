@@ -37,6 +37,7 @@ export type {
   Constraint,
   ConstraintType,
   SubObjectConstraint,
+  SubjectToConstraint,
   ConstraintPart,
   ReferenceDirective,
   ConstraintText,

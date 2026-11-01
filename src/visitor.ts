@@ -22,6 +22,7 @@ import type {
   NamedObject,
   SubObject,
   SubObjectConstraint,
+  SubjectToConstraint,
   ArrayObject,
   Constraint,
   ConstraintPart,
@@ -358,27 +359,45 @@ export class SpexParserVisitor extends BaseSpexVisitor implements ICstVisitor<an
   }
 
   subObject(ctx: any): SubObject {
-    const base = this.visit(ctx.base)
-    if (ctx.CodeBlock) {
-      return {
-        kind: 'SubObject',
-        base,
-        constraint: codeConstraint(ctx.CodeBlock[0].image),
-        location: locationOf(ctx),
+    const constraints: SubjectToConstraint[] = (ctx.subjectToConstraint ?? []).map(
+      (constraint: any) => this.visit(constraint)
+    )
+    const names = new Set<string>()
+    for (const constraint of constraints) {
+      if (constraint.name === null) continue
+      if (names.has(constraint.name)) {
+        throw new SpexError(
+          'Parsing',
+          `Duplicate constraint name '${constraint.name}'`,
+          constraint.location
+        )
       }
+      names.add(constraint.name)
     }
-    const rawText: string = ctx.SelectBlock[0].image
-    const rawConstraint = unescapeConstraint(rawText.slice(1, -1).trim())
     return {
       kind: 'SubObject',
-      base,
-      constraint: {
-        type: 'NaturalLanguage',
-        raw: rawConstraint,
-        parts: parseConstraint(rawConstraint).parts,
-      },
+      base: this.visit(ctx.base),
+      constraint: this.visit(ctx.pattern),
+      constraints,
       location: locationOf(ctx),
     }
+  }
+
+  subjectToConstraint(ctx: any): SubjectToConstraint {
+    return {
+      name: ctx.Identifier ? ctx.Identifier[0].image : null,
+      pattern: this.visit(ctx.pattern),
+      location: locationOf(ctx),
+    }
+  }
+
+  pattern(ctx: any): SubObjectConstraint {
+    if (ctx.CodeBlock) {
+      return codeConstraint(ctx.CodeBlock[0].image)
+    }
+    const rawText: string = ctx.SelectBlock[0].image
+    const raw = unescapeConstraint(rawText.slice(1, -1).trim())
+    return { type: 'NaturalLanguage', raw, parts: parseConstraint(raw).parts }
   }
 
   importDeclaration(ctx: any): ImportDeclaration {

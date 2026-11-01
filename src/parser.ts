@@ -16,6 +16,8 @@ import {
   WithTok,
   AndTok,
   EntryTok,
+  SubjectTok,
+  ToTok,
   ArrowTok,
   PipeTok,
   SelectBlock,
@@ -198,6 +200,29 @@ export class SpexParser extends CstParser {
     this.CONSUME(FromTok)
     this.SUBRULE(this.setObject, { LABEL: 'base' })
     this.CONSUME(SelectTok)
+    this.SUBRULE(this.pattern)
+    this.OPTION(() => {
+      this.CONSUME(SubjectTok)
+      this.CONSUME(ToTok)
+      this.CONSUME(LBracket)
+      this.MANY(() => {
+        this.SUBRULE(this.subjectToConstraint)
+        this.OPTION2(() => this.CONSUME(Comma))
+      })
+      this.CONSUME(RBracket)
+    })
+  })
+
+  // A constraint of a `subject to` list, optionally named: `[Name:] pattern`.
+  private subjectToConstraint = this.RULE('subjectToConstraint', () => {
+    this.OPTION(() => {
+      this.CONSUME(Identifier)
+      this.CONSUME(Colon)
+    })
+    this.SUBRULE(this.pattern)
+  })
+
+  private pattern = this.RULE('pattern', () => {
     this.OR([{ ALT: () => this.CONSUME(SelectBlock) }, { ALT: () => this.CONSUME(CodeBlock) }])
   })
 

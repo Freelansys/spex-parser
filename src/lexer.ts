@@ -1,4 +1,10 @@
-import { createToken, Lexer, type CustomPatternMatcherReturn, type IToken } from 'chevrotain'
+import {
+  createToken,
+  Lexer,
+  tokenMatcher,
+  type CustomPatternMatcherReturn,
+  type IToken,
+} from 'chevrotain'
 
 export const WhiteSpace = createToken({
   name: 'WhiteSpace',
@@ -92,9 +98,53 @@ function lastScannedToken(tokens: IToken[]): IToken | undefined {
   return undefined
 }
 
+// Whether the next token is a constraint of a `subject to [ ... ]` list: it
+// follows the list's `[`, a `,`, or a constraint name's `:`. Inside the list
+// only names, colons, commas, and patterns occur, so walking back over those
+// must reach the `[` of `subject to [`.
+function opensSubjectToConstraint(tokens: IToken[]): boolean {
+  let i = tokens.length - 1
+  while (i >= 0 && tokens[i] === undefined) i--
+  const last = tokens[i]
+  if (last === undefined) return false
+  if (
+    last.tokenTypeIdx !== LBracket.tokenTypeIdx &&
+    last.tokenTypeIdx !== Comma.tokenTypeIdx &&
+    last.tokenTypeIdx !== Colon.tokenTypeIdx
+  ) {
+    return false
+  }
+  for (; i >= 0; i--) {
+    const token = tokens[i]
+    if (token === undefined) continue
+    if (token.tokenTypeIdx === LBracket.tokenTypeIdx) {
+      const before: IToken[] = []
+      for (let j = i - 1; j >= 0 && before.length < 2; j--) {
+        const previous = tokens[j]
+        if (previous !== undefined) before.push(previous)
+      }
+      return (
+        before[0]?.tokenTypeIdx === ToTok.tokenTypeIdx &&
+        before[1]?.tokenTypeIdx === SubjectTok.tokenTypeIdx
+      )
+    }
+    if (
+      !tokenMatcher(token, Identifier) &&
+      token.tokenTypeIdx !== Colon.tokenTypeIdx &&
+      token.tokenTypeIdx !== Comma.tokenTypeIdx &&
+      token.tokenTypeIdx !== SelectBlock.tokenTypeIdx &&
+      token.tokenTypeIdx !== CodeBlock.tokenTypeIdx
+    ) {
+      return false
+    }
+  }
+  return false
+}
+
 // Brace text block (for SELECT { ... }). A brace only opens a select block
-// directly after `select`; everywhere else it delimits a decomposition, so the
-// surrounding grammar decides which of the two a `{` belongs to.
+// directly after `select` or as a constraint of a `subject to [ ... ]` list;
+// everywhere else it delimits a decomposition, so the surrounding grammar
+// decides which of the two a `{` belongs to.
 export const SelectBlock = createToken({
   name: 'SelectBlock',
   line_breaks: true,
@@ -105,7 +155,12 @@ export const SelectBlock = createToken({
   ): CustomPatternMatcherReturn | null => {
     let i = startOffset
     if (text[i] !== '{') return null
-    if (lastScannedToken(tokens)?.tokenTypeIdx !== SelectTok.tokenTypeIdx) return null
+    if (
+      lastScannedToken(tokens)?.tokenTypeIdx !== SelectTok.tokenTypeIdx &&
+      !opensSubjectToConstraint(tokens)
+    ) {
+      return null
+    }
     for (i++; i < text.length; i++) {
       if (text[i] === '\\') {
         i++
@@ -236,9 +291,9 @@ export const Identifier = createToken({
   pattern: /[a-zA-Z_][a-zA-Z0-9_]*/,
 })
 
-// The keywords of a realization's `with` clause are contextual: they fall into
-// the Identifier category, so they stay usable as names (e.g. a decomposition
-// part called `entry`).
+// The keywords of a realization's `with` clause and of a subobject's
+// `subject to` clause are contextual: they fall into the Identifier category,
+// so they stay usable as names (e.g. a decomposition part called `entry`).
 export const WithTok = createToken({
   name: 'WithTok',
   pattern: /with\b/i,
@@ -247,6 +302,16 @@ export const WithTok = createToken({
 export const AndTok = createToken({
   name: 'AndTok',
   pattern: /and\b/i,
+  categories: [Identifier],
+})
+export const SubjectTok = createToken({
+  name: 'SubjectTok',
+  pattern: /subject\b/i,
+  categories: [Identifier],
+})
+export const ToTok = createToken({
+  name: 'ToTok',
+  pattern: /to\b/i,
   categories: [Identifier],
 })
 export const EntryTok = createToken({
@@ -275,6 +340,8 @@ export const allTokens = [
   WithTok,
   AndTok,
   EntryTok,
+  SubjectTok,
+  ToTok,
 
   ArrowTok,
   PipeTok,

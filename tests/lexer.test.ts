@@ -419,4 +419,45 @@ describe('SpexLexer', () => {
       expect(result.tokens).toHaveLength(0)
     })
   })
+
+  describe('subject to clause', () => {
+    it('should lex the braces of a subject to list as select blocks', () => {
+      const result = SpexLexer.tokenize('select { a } subject to [ { b }, Named: { c } ]')
+      expect(result.errors).toHaveLength(0)
+      expect(result.tokens.map((t) => t.tokenType.name)).toEqual([
+        'SelectTok',
+        'SelectBlock',
+        'SubjectTok',
+        'ToTok',
+        'LBracket',
+        'SelectBlock',
+        'Comma',
+        'Identifier',
+        'Colon',
+        'SelectBlock',
+        'RBracket',
+      ])
+    })
+
+    it('should not lex braces outside a subject to list as select blocks', () => {
+      const result = SpexLexer.tokenize('realize A as { a: B } in E;')
+      expect(result.tokens.map((t) => t.tokenType.name)).toContain('LCurly')
+      expect(result.tokens.map((t) => t.tokenType.name)).not.toContain('SelectBlock')
+    })
+
+    it('should not lex braces after a bracket not preceded by subject to', () => {
+      const result = SpexLexer.tokenize('to [ {')
+      expect(result.tokens.map((t) => t.tokenType.name)).toEqual(['ToTok', 'LBracket', 'LCurly'])
+    })
+
+    it('should keep subject and to usable as identifiers', () => {
+      const result = SpexLexer.tokenize('subject to subjects tomato')
+      expect(result.tokens.map((t) => t.tokenType.name)).toEqual([
+        'SubjectTok',
+        'ToTok',
+        'Identifier',
+        'Identifier',
+      ])
+    })
+  })
 })
