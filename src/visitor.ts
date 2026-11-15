@@ -172,7 +172,8 @@ export class SpexParserVisitor extends BaseSpexVisitor implements ICstVisitor<an
   }
 
   spexFile(ctx: any): SpexFile {
-    const declarations = ctx.declaration.map((decl: any) => this.visit(decl))
+    // A file with no declarations, such as one holding only comments, is an empty file.
+    const declarations = (ctx.declaration ?? []).map((decl: any) => this.visit(decl))
     return { kind: 'SpexFile', declarations, location: locationOf(ctx) }
   }
 

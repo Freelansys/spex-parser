@@ -605,6 +605,12 @@ describe('SpexParserVisitor', () => {
     })
   })
 
+  describe('a file with no declarations', () => {
+    it.each(['', '  \n', '-- only a comment\n', '/* a comment */'])('reads %j as empty', (text) => {
+      expect(parseToAst(text).declarations).toEqual([])
+    })
+  })
+
   describe('import declaration', () => {
     it('should place an import at the whole statement, from import to the semicolon', () => {
       const testCase = 'import A as B from "a.spex";\nimport "b.spex" as b;'
