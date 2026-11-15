@@ -401,10 +401,12 @@ export class SpexParserVisitor extends BaseSpexVisitor implements ICstVisitor<an
   }
 
   importDeclaration(ctx: any): ImportDeclaration {
-    if (ctx.namedImport) {
-      return this.visit(ctx.namedImport)
-    }
-    return this.visit(ctx.moduleImport)
+    const declaration: ImportDeclaration = ctx.namedImport
+      ? this.visit(ctx.namedImport)
+      : this.visit(ctx.moduleImport)
+    // The whole statement, `import` to `;`, as every other declaration's
+    // location is: a tool that rewrites it in place replaces exactly that.
+    return { ...declaration, location: locationOf(ctx) }
   }
 
   namedImport(ctx: any): ImportDeclaration {

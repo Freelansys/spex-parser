@@ -606,6 +606,15 @@ describe('SpexParserVisitor', () => {
   })
 
   describe('import declaration', () => {
+    it('should place an import at the whole statement, from import to the semicolon', () => {
+      const testCase = 'import A as B from "a.spex";\nimport "b.spex" as b;'
+      const [named, module] = parseToAst(testCase).declarations
+      const text = (d: ImportDeclaration) =>
+        testCase.slice(d.location.start.offset, d.location.end.offset)
+      expect(text(named as ImportDeclaration)).toBe('import A as B from "a.spex";')
+      expect(text(module as ImportDeclaration)).toBe('import "b.spex" as b;')
+    })
+
     it('should convert named import to AST', () => {
       const testCase = 'import EmailAddress from "types.spex";'
       const ast = parseToAst(testCase)
